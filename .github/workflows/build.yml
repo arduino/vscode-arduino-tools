@@ -33,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: electron/build/dist/build-artifacts/
+          path: build-artifacts/
 
       - name: Upload VS Code Extension [S3]
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')

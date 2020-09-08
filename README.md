@@ -6,7 +6,7 @@ To build the Arduino Language Server VS Code extension (VSIX), execute:
 yarn
 ```
 
-It will generate a `vscode-arduino-language-server-x.x.x.vsix` file in the project root.
+It will generate a `vscode-arduino-language-server-x.x.x.vsix` file in the `./build-artifacts` folder.
 In VS Code, open the `Extensions` panel, click on the ellipses (`...`) and select `Install from VSIX...`.
 Or from the [_Command Palette_](https://code.visualstudio.com/docs/editor/extension-gallery#_install-from-a-vsix).
 
