@@ -16,7 +16,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
     "webpack": "webpack --config ./configs/webpack.config.js",
-    "package": "vsce package"
+    "package": "vsce package --out ./build-artifacts"
   },
   "repository": {
     "type": "git",

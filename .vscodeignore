@@ -5,4 +5,6 @@ dist/**/*.map
 node_modules/
 **/tsconfig.json
 yarn.lock
-*.zip
+.github/
+.vscode/
+yarn.lock

@@ -2,5 +2,4 @@ node_modules/
 lib/
 bin/
 dist/
-*.zip
-*.vsix
+build-artifacts/
