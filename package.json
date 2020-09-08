@@ -12,11 +12,11 @@
   },
   "scripts": {
     "prepare": "yarn clean && yarn compile && yarn webpack && yarn package",
-    "clean": "rimraf ./lib",
+    "clean": "rimraf ./lib && rimraf ./build-artifacts",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
     "webpack": "webpack --config ./configs/webpack.config.js",
-    "package": "vsce package --out ./build-artifacts"
+    "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/node": "^10.14.9",
     "@types/vscode": "^1.41.0",
+    "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2",
     "typescript": "^3.8.3",
     "vsce": "^1.66.0",
