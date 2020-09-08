@@ -1,0 +1,8 @@
+src/
+lib/
+configs/
+dist/**/*.map
+node_modules/
+**/tsconfig.json
+yarn.lock
+*.zip

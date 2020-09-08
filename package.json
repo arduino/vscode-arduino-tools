@@ -1,0 +1,98 @@
+{
+  "name": "vscode-arduino-language-server",
+  "private": true,
+  "version": "0.0.1",
+  "publisher": "arduino",
+  "license": "MIT",
+  "author": "Arduino SA",
+  "description": "Arduino Language Server extension for VS Code",
+  "main": "./dist/bundle",
+  "engines": {
+    "vscode": "^1.46.0"
+  },
+  "scripts": {
+    "prepare": "yarn clean && yarn compile && yarn webpack && yarn package",
+    "clean": "rimraf ./lib",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "webpack": "webpack --config ./configs/webpack.config.js",
+    "package": "vsce package"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arduino/vscode-arduino-language-server"
+  },
+  "bugs": {
+    "url": "https://github.com/arduino/vscode-arduino-language-server/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^10.14.9",
+    "@types/vscode": "^1.41.0",
+    "rimraf": "^3.0.2",
+    "typescript": "^3.8.3",
+    "vsce": "^1.66.0",
+    "vscode": "^1.1.33",
+    "webpack": "^4.39.1",
+    "webpack-cli": "^3.3.6"
+  },
+  "dependencies": {
+    "@types/deep-equal": "^1.0.1",
+    "deep-equal": "^2.0.3",
+    "path": "^0.12.7",
+    "vscode-languageclient": "^6.1.3",
+    "web-request": "^1.0.7"
+  },
+  "keywords": [
+    "arduino",
+    "iot",
+    "ino",
+    "IntelliSense"
+  ],
+  "files": [
+    "src",
+    "lib",
+    "syntaxes",
+    "languages"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Formatters"
+  ],
+  "galleryBanner": {
+    "color": "#006468",
+    "theme": "light"
+  },
+  "activationEvents": [
+    "onCommand:arduino.languageserver.start"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "ino",
+        "aliases": [
+          "INO",
+          "Ino",
+          "ino"
+        ],
+        "extensions": [
+          ".ino"
+        ],
+        "configuration": "./languages/ino.language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ino",
+        "scopeName": "source.ino",
+        "path": "./syntaxes/ino.tmGrammar.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "arduino.languageserver.start",
+        "title": "Arduino: Start/Restart Language Server",
+        "description": "Start the language server or restart if there is a running instance"
+      }
+    ]
+  }
+}
