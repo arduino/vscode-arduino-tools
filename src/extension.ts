@@ -17,7 +17,6 @@ interface LanguageServerConfig {
      * If `true` the LS will be restarted if it's running. Defaults to `false`.
      */
     readonly force?: boolean;
-    readonly outputEnabled?: boolean;
 }
 
 let languageClient: LanguageClient | undefined;
@@ -43,7 +42,7 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
             languageServerDisposable.dispose();
         }
     }
-    if (!languageClient || !deepEqual(latestConfig, config)) {
+    if (!languageClient || !deepEqual(latestConfig, config) || config.force) {
         latestConfig = config;
         languageClient = buildLanguageClient(config);
         crashCount = 0;
@@ -54,15 +53,13 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
 }
 
 function buildLanguageClient(config: LanguageServerConfig): LanguageClient {
-    if (config.outputEnabled) {
-        if (!serverOutputChannel) {
-            serverOutputChannel = vscode.window.createOutputChannel('Arduino Language Server');
-        }
-        if (!serverTraceChannel) {
-            serverTraceChannel = vscode.window.createOutputChannel('Arduino Language Server (trace)');
-        }
+    if (!serverOutputChannel) {
+        serverOutputChannel = vscode.window.createOutputChannel('Arduino Language Server');
     }
-    const { lsPath: command, clangdPath, cliPath, board, flags } = config;
+    if (!serverTraceChannel) {
+        serverTraceChannel = vscode.window.createOutputChannel('Arduino Language Server (trace)');
+    }
+    const { lsPath: command, clangdPath, cliPath, board, flags, env } = config;
     const args = ['-clangd', clangdPath, '-cli', cliPath, '-fqbn', board.fqbn];
     if (board.name) {
         args.push('-board-name', board.name);
@@ -76,7 +73,7 @@ function buildLanguageClient(config: LanguageServerConfig): LanguageClient {
         {
             command,
             args,
-            options: { env: config.env },
+            options: { env: env || {} },
         },
         {
             initializationOptions: {},

@@ -12,7 +12,7 @@
   },
   "scripts": {
     "prepare": "yarn clean && yarn compile && yarn webpack && yarn package",
-    "clean": "rimraf ./lib && rimraf ./build-artifacts",
+    "clean": "rimraf ./lib ./dist ./build-artifacts",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
     "webpack": "webpack --config ./configs/webpack.config.js",
@@ -28,13 +28,15 @@
   "devDependencies": {
     "@types/node": "^10.14.9",
     "@types/vscode": "^1.41.0",
+    "copy-webpack-plugin": "^6.1.0",
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2",
     "typescript": "^3.8.3",
     "vsce": "^1.66.0",
     "vscode": "^1.1.33",
     "webpack": "^4.39.1",
-    "webpack-cli": "^3.3.6"
+    "webpack-cli": "^3.3.6",
+    "webpack-permissions-plugin": "^1.0.7"
   },
   "dependencies": {
     "@types/deep-equal": "^1.0.1",
@@ -64,7 +66,8 @@
     "theme": "light"
   },
   "activationEvents": [
-    "onCommand:arduino.languageserver.start"
+    "onCommand:arduino.languageserver.start",
+    "onCommand:arduino.languageserver.startWithDefault"
   ],
   "contributes": {
     "languages": [
@@ -93,6 +96,11 @@
         "command": "arduino.languageserver.start",
         "title": "Arduino: Start/Restart Language Server",
         "description": "Start the language server or restart if there is a running instance"
+      },
+      {
+        "command": "arduino.languageserver.startWithDefault",
+        "title": "Arduino: Start/Restart Language Server with Defaults",
+        "description": "Start the language server or restart if there is a running instance with default configs"
       }
     ]
   }
