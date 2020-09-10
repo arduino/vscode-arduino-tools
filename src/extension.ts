@@ -13,10 +13,6 @@ interface LanguageServerConfig {
     }
     readonly env?: any;
     readonly flags?: string[];
-    /**
-     * If `true` the LS will be restarted if it's running. Defaults to `false`.
-     */
-    readonly force?: boolean;
 }
 
 let languageClient: LanguageClient | undefined;
@@ -42,7 +38,7 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
             languageServerDisposable.dispose();
         }
     }
-    if (!languageClient || !deepEqual(latestConfig, config) || config.force) {
+    if (!languageClient || !deepEqual(latestConfig, config)) {
         latestConfig = config;
         languageClient = buildLanguageClient(config);
         crashCount = 0;
@@ -73,7 +69,7 @@ function buildLanguageClient(config: LanguageServerConfig): LanguageClient {
         {
             command,
             args,
-            options: { env: env || {} },
+            options: { env },
         },
         {
             initializationOptions: {},
