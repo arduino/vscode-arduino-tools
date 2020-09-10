@@ -66,8 +66,7 @@
     "theme": "light"
   },
   "activationEvents": [
-    "onCommand:arduino.languageserver.start",
-    "onCommand:arduino.languageserver.startWithDefault"
+    "onCommand:arduino.languageserver.start"
   ],
   "contributes": {
     "languages": [
@@ -96,11 +95,6 @@
         "command": "arduino.languageserver.start",
         "title": "Arduino: Start/Restart Language Server",
         "description": "Start the language server or restart if there is a running instance"
-      },
-      {
-        "command": "arduino.languageserver.startWithDefault",
-        "title": "Arduino: Start/Restart Language Server with Defaults",
-        "description": "Start the language server or restart if there is a running instance with default configs"
       }
     ]
   }
