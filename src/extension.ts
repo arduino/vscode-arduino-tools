@@ -7,6 +7,10 @@ interface LanguageServerConfig {
     readonly lsPath: string;
     readonly cliPath: string;
     readonly clangdPath: string;
+    /**
+     * Filesystem path pointing to the folder that contains the `compile_commands.json` file.
+     */
+    readonly compileCommandsPath?: string;
     readonly board: {
         readonly fqbn: string;
         readonly name?: string;
@@ -55,10 +59,13 @@ function buildLanguageClient(config: LanguageServerConfig): LanguageClient {
     if (!serverTraceChannel) {
         serverTraceChannel = vscode.window.createOutputChannel('Arduino Language Server (trace)');
     }
-    const { lsPath: command, clangdPath, cliPath, board, flags, env } = config;
+    const { lsPath: command, clangdPath, cliPath, board, flags, env, compileCommandsPath } = config;
     const args = ['-clangd', clangdPath, '-cli', cliPath, '-fqbn', board.fqbn];
     if (board.name) {
         args.push('-board-name', board.name);
+    }
+    if (compileCommandsPath) {
+        args.push('-compile-commands-dir', compileCommandsPath);
     }
     if (flags && flags.length) {
         args.push(...flags);
