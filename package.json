@@ -66,6 +66,8 @@
     "theme": "light"
   },
   "activationEvents": [
+    "onLanguage:ino",
+    "onCommand:arduino.debug.start",
     "onCommand:arduino.languageserver.start"
   ],
   "contributes": {
@@ -93,8 +95,13 @@
     "commands": [
       {
         "command": "arduino.languageserver.start",
-        "title": "Arduino: Start/Restart Language Server",
-        "description": "Start the language server or restart if there is a running instance"
+        "title": "Start Language Server",
+        "category": "Arduino"
+      },
+      {
+        "command": "arduino.debug.start",
+        "title": "Start Debug",
+        "category": "Arduino"
       }
     ]
   }

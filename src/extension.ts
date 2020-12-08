@@ -1,5 +1,7 @@
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
+import { join } from 'path';
+import { spawnSync } from 'child_process';
 import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
 
@@ -19,6 +21,29 @@ interface LanguageServerConfig {
     readonly flags?: string[];
 }
 
+interface DebugConfig {
+    readonly cliPath: string;
+    readonly board: {
+        readonly fqbn: string;
+        readonly name?: string;
+    }
+    readonly sketchPath: string;
+}
+
+interface DebugInfo {
+    readonly executable: string;
+    readonly toolchain: string;
+    readonly toolchain_path: string;
+    readonly toolchain_prefix: string;
+    readonly server: string;
+    readonly server_path: string;
+    readonly server_configuration: {
+        readonly path: string;
+        readonly script: string;
+        readonly scripts_dir: string;
+    }
+}
+
 let languageClient: LanguageClient | undefined;
 let languageServerDisposable: vscode.Disposable | undefined;
 let latestConfig: LanguageServerConfig | undefined;
@@ -28,8 +53,50 @@ let crashCount = 0;
 
 export function activate(context: ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('arduino.languageserver.start', (config: LanguageServerConfig) => startLanguageServer(context, config))
+        vscode.commands.registerCommand('arduino.languageserver.start', (config: LanguageServerConfig) => startLanguageServer(context, config)),
+        vscode.commands.registerCommand('arduino.debug.start', (config: DebugConfig) => startDebug(context, config))
     );
+}
+
+async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boolean> {
+    let info: DebugInfo | undefined = undefined;
+    try {
+        const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json'];
+        const rawInfo = spawnSync(config.cliPath, args, { encoding: 'utf8' }).stdout.trim();
+        info = JSON.parse(rawInfo);
+    } catch (err) {
+        const message = err instanceof Error ? err.stack || err.message : 'Unknown error';
+        vscode.window.showErrorMessage(message);
+        return false;
+    }
+    if (!info) {
+        return false;
+    }
+    const debugConfig = {
+        cwd: '${workspaceRoot}',
+        name: 'Arduino',
+        request: 'launch',
+        type: 'cortex-debug',
+        executable: info.executable,
+        servertype: info.server,
+        serverpath: join(info.server_path, info.server),
+        armToolchainPath: info.toolchain_path,
+        configFiles: [
+            info.server_configuration.script
+        ]
+    };
+    // Create the `launch.json` if it does not exist. Otherwise, update the existing.
+    const configuration = vscode.workspace.getConfiguration();
+    const launchConfig = {
+        version: '0.2.0',
+        'configurations': [
+            {
+                ...debugConfig
+            }
+        ]
+    };
+    await configuration.update('launch', launchConfig, false);
+    return vscode.debug.startDebugging(undefined, debugConfig);
 }
 
 async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<void> {
