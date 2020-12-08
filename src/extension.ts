@@ -1,6 +1,5 @@
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
-import { join } from 'path';
 import { spawnSync } from 'child_process';
 import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
@@ -79,7 +78,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
         type: 'cortex-debug',
         executable: info.executable,
         servertype: info.server,
-        serverpath: join(info.server_path, info.server),
+        serverpath: info.server_path,
         armToolchainPath: info.toolchain_path,
         configFiles: [
             info.server_configuration.script
