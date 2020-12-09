@@ -1,6 +1,7 @@
+import { posix } from 'path';
+import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
-import { spawnSync } from 'child_process';
 import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
 
@@ -59,14 +60,32 @@ export function activate(context: ExtensionContext) {
 
 async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boolean> {
     let info: DebugInfo | undefined = undefined;
+    let rawStdout: string | undefined = undefined;
+    let rawStdErr: string | undefined = undefined;
     try {
         const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json'];
-        const rawInfo = spawnSync(config.cliPath, args, { encoding: 'utf8' }).stdout.trim();
-        info = JSON.parse(rawInfo);
+        const { stdout, stderr } = spawnSync(config.cliPath, args, { encoding: 'utf8' });
+        rawStdout = stdout.trim();
+        rawStdErr = stderr.trim();
     } catch (err) {
         const message = err instanceof Error ? err.stack || err.message : 'Unknown error';
         vscode.window.showErrorMessage(message);
         return false;
+    }
+    if (!rawStdout) {
+        if (rawStdErr) {
+            if (rawStdErr.indexOf('compiled sketch not found in') !== -1) {
+                vscode.window.showErrorMessage(`Sketch '${posix.basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
+            } else {
+                vscode.window.showErrorMessage(rawStdErr);
+            }
+        }
+        return false;
+    }
+    try {
+        info = JSON.parse(rawStdout);
+    } catch (err) {
+        vscode.window.showErrorMessage(err);
     }
     if (!info) {
         return false;
