@@ -1,4 +1,6 @@
-import { posix } from 'path';
+import { stat } from 'fs';
+import { basename } from 'path';
+import { promisify } from 'util';
 import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
@@ -13,6 +15,13 @@ interface LanguageServerConfig {
         readonly fqbn: string;
         readonly name?: string;
     }
+    /**
+     * `true` if the LS should generate log files into the default location. The default location is `cwd` of the process. It's very often the same
+     * as the workspace root of the IDE, aka the sketch folder.
+     * When it is a string, it is the folder where the log files should be generated. If the path is invalid (does not exist, not a folder),
+     * the log files will be generated into the default location.
+     */
+    readonly log?: boolean | string;
     readonly env?: any;
     readonly flags?: string[];
 }
@@ -71,7 +80,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     if (!rawStdout) {
         if (rawStdErr) {
             if (rawStdErr.indexOf('compiled sketch not found in') !== -1) {
-                vscode.window.showErrorMessage(`Sketch '${posix.basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
+                vscode.window.showErrorMessage(`Sketch '${basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
             } else {
                 vscode.window.showErrorMessage(rawStdErr);
             }
@@ -125,7 +134,7 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
     }
     if (!languageClient || !deepEqual(latestConfig, config)) {
         latestConfig = config;
-        languageClient = buildLanguageClient(config);
+        languageClient = await buildLanguageClient(config);
         crashCount = 0;
     }
 
@@ -133,20 +142,35 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
     context.subscriptions.push(languageServerDisposable);
 }
 
-function buildLanguageClient(config: LanguageServerConfig): LanguageClient {
+async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
     if (!serverOutputChannel) {
         serverOutputChannel = vscode.window.createOutputChannel('Arduino Language Server');
     }
     if (!serverTraceChannel) {
         serverTraceChannel = vscode.window.createOutputChannel('Arduino Language Server (trace)');
     }
-    const { lsPath: command, clangdPath, cliPath, board, flags, env } = config;
+    const { lsPath: command, clangdPath, cliPath, board, flags, env, log } = config;
     const args = ['-clangd', clangdPath, '-cli', cliPath, '-fqbn', board.fqbn];
     if (board.name) {
         args.push('-board-name', board.name);
     }
     if (flags && flags.length) {
         args.push(...flags);
+    }
+    if (!!log) {
+        args.push('-log');
+        let logPath: string | undefined = undefined;
+        if (typeof log === 'string') {
+            try {
+                const stats = await promisify(stat)(log);
+                if (stats.isDirectory()) {
+                    logPath = log;
+                }
+            } catch { }
+        }
+        if (logPath) {
+            args.push('-logpath', logPath);
+        }
     }
     return new LanguageClient(
         'ino',
