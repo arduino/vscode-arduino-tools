@@ -80,7 +80,11 @@
           "ino"
         ],
         "extensions": [
-          ".ino"
+          ".ino",
+          ".c",
+          ".cpp",
+          ".h",
+          ".hpp"
         ],
         "configuration": "./languages/ino.language-configuration.json"
       }
