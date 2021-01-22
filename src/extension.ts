@@ -1,9 +1,10 @@
-import { stat } from 'fs';
-import { basename } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { promisify } from 'util';
 import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
+import deepmerge from 'deepmerge';
 import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
 
@@ -80,7 +81,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     if (!rawStdout) {
         if (rawStdErr) {
             if (rawStdErr.indexOf('compiled sketch not found in') !== -1) {
-                vscode.window.showErrorMessage(`Sketch '${basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
+                vscode.window.showErrorMessage(`Sketch '${path.basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
             } else {
                 vscode.window.showErrorMessage(rawStdErr);
             }
@@ -95,7 +96,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     if (!info) {
         return false;
     }
-    const debugConfig = {
+    const defaultDebugConfig = {
         cwd: '${workspaceRoot}',
         name: 'Arduino',
         request: 'launch',
@@ -108,18 +109,26 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
             info.server_configuration.script
         ]
     };
+
+    let customDebugConfig = {};
+    try {
+        const raw = await promisify(fs.readFile)(path.join(config.sketchPath, 'debug_custom.json'), { encoding: 'utf8' });
+        customDebugConfig = JSON.parse(raw);
+    } catch { }
+    const mergedDebugConfig = deepmerge(defaultDebugConfig, customDebugConfig);
+
     // Create the `launch.json` if it does not exist. Otherwise, update the existing.
     const configuration = vscode.workspace.getConfiguration();
     const launchConfig = {
         version: '0.2.0',
         'configurations': [
             {
-                ...debugConfig
+                ...mergedDebugConfig
             }
         ]
     };
     await configuration.update('launch', launchConfig, false);
-    return vscode.debug.startDebugging(undefined, debugConfig);
+    return vscode.debug.startDebugging(undefined, mergedDebugConfig);
 }
 
 async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<void> {
@@ -162,7 +171,7 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
         let logPath: string | undefined = undefined;
         if (typeof log === 'string') {
             try {
-                const stats = await promisify(stat)(log);
+                const stats = await promisify(fs.stat)(log);
                 if (stats.isDirectory()) {
                     logPath = log;
                 }
