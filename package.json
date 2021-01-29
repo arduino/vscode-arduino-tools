@@ -85,7 +85,8 @@
           ".c",
           ".cpp",
           ".h",
-          ".hpp"
+          ".hpp",
+          ".pde"
         ],
         "configuration": "./languages/ino.language-configuration.json"
       }

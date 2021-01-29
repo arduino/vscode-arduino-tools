@@ -191,7 +191,7 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
         },
         {
             initializationOptions: {},
-            documentSelector: ['ino', 'c', 'cpp', 'h', 'hpp'],
+            documentSelector: ['ino', 'c', 'cpp', 'h', 'hpp', 'pde'],
             uriConverters: {
                 code2Protocol: (uri: vscode.Uri): string => (uri.scheme ? uri : uri.with({ scheme: 'file' })).toString(),
                 protocol2Code: (uri: string) => vscode.Uri.parse(uri)
