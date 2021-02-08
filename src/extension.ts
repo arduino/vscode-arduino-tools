@@ -53,8 +53,6 @@ interface DebugInfo {
 let languageClient: LanguageClient | undefined;
 let languageServerDisposable: vscode.Disposable | undefined;
 let latestConfig: LanguageServerConfig | undefined;
-let serverOutputChannel: vscode.OutputChannel | undefined;
-let serverTraceChannel: vscode.OutputChannel | undefined;
 let crashCount = 0;
 
 export function activate(context: ExtensionContext) {
@@ -152,12 +150,6 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
 }
 
 async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
-    if (!serverOutputChannel) {
-        serverOutputChannel = vscode.window.createOutputChannel('Arduino Language Server');
-    }
-    if (!serverTraceChannel) {
-        serverTraceChannel = vscode.window.createOutputChannel('Arduino Language Server (trace)');
-    }
     const { lsPath: command, clangdPath, cliPath, board, flags, env, log } = config;
     const args = ['-clangd', clangdPath, '-cli', cliPath, '-fqbn', board.fqbn];
     if (board.name) {
@@ -196,8 +188,6 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
                 code2Protocol: (uri: vscode.Uri): string => (uri.scheme ? uri : uri.with({ scheme: 'file' })).toString(),
                 protocol2Code: (uri: string) => vscode.Uri.parse(uri)
             },
-            outputChannel: serverOutputChannel,
-            traceOutputChannel: serverTraceChannel,
             revealOutputChannelOn: RevealOutputChannelOn.Never,
             initializationFailedHandler: (error: WebRequest.ResponseError<InitializeError>): boolean => {
                 vscode.window.showErrorMessage(`The language server is not able to serve any features. Initialization failed: ${error}.`);
