@@ -5,6 +5,7 @@ import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
 import deepmerge from 'deepmerge';
+import { Mutex } from 'async-mutex';
 import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
 
@@ -54,10 +55,21 @@ let languageClient: LanguageClient | undefined;
 let languageServerDisposable: vscode.Disposable | undefined;
 let latestConfig: LanguageServerConfig | undefined;
 let crashCount = 0;
+const languageServerStartMutex = new Mutex();
+export let languageServerIsRunning = false; // TODO: use later for `start`, `stop`, and `restart` language server.
 
 export function activate(context: ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('arduino.languageserver.start', (config: LanguageServerConfig) => startLanguageServer(context, config)),
+        vscode.commands.registerCommand('arduino.languageserver.start', async (config: LanguageServerConfig) => {
+            const unlock = await languageServerStartMutex.acquire();
+            try {
+                const started = await startLanguageServer(context, config);
+                languageServerIsRunning = started;
+                return languageServerIsRunning ? config.board.fqbn : undefined;
+            } finally {
+                unlock();
+            }
+        }),
         vscode.commands.registerCommand('arduino.debug.start', (config: DebugConfig) => startDebug(context, config))
     );
 }
@@ -129,7 +141,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     return vscode.debug.startDebugging(undefined, mergedDebugConfig);
 }
 
-async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<void> {
+async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<boolean> {
     if (languageClient) {
         if (languageClient.diagnostics) {
             languageClient.diagnostics.clear();
@@ -147,6 +159,8 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
 
     languageServerDisposable = languageClient.start();
     context.subscriptions.push(languageServerDisposable);
+    await languageClient.onReady();
+    return true;
 }
 
 async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
