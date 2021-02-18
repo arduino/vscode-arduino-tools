@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@types/deep-equal": "^1.0.1",
+    "async-mutex": "^0.3.0",
     "deep-equal": "^2.0.3",
     "deepmerge": "^4.2.2",
     "path": "^0.12.7",
