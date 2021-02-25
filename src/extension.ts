@@ -66,8 +66,26 @@ export function activate(context: ExtensionContext) {
                 const started = await startLanguageServer(context, config);
                 languageServerIsRunning = started;
                 return languageServerIsRunning ? config.board.fqbn : undefined;
+            } catch (e) {
+                console.log(e);
+                languageServerIsRunning = false;
+                throw e;
             } finally {
                 unlock();
+            }
+        }),
+        vscode.commands.registerCommand('arduino.languageserver.stop', async () => {
+            const unlock = await languageServerStartMutex.acquire();
+            try {
+                await stopLanguageServer(context);
+                languageServerIsRunning = false;
+            } finally {
+                unlock();
+            }
+        }),
+        vscode.commands.registerCommand('arduino.languageserver.restart', async () => {
+            if (latestConfig) {
+                return vscode.commands.executeCommand('arduino.languageserver.start', latestConfig);
             }
         }),
         vscode.commands.registerCommand('arduino.debug.start', (config: DebugConfig) => startDebug(context, config))
@@ -141,7 +159,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     return vscode.debug.startDebugging(undefined, mergedDebugConfig);
 }
 
-async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<boolean> {
+async function stopLanguageServer(context: ExtensionContext): Promise<void> {
     if (languageClient) {
         if (languageClient.diagnostics) {
             languageClient.diagnostics.clear();
@@ -151,6 +169,10 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
             languageServerDisposable.dispose();
         }
     }
+}
+
+async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<boolean> {
+    await stopLanguageServer(context);
     if (!languageClient || !deepEqual(latestConfig, config)) {
         latestConfig = config;
         languageClient = await buildLanguageClient(config);
