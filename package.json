@@ -70,7 +70,9 @@
   "activationEvents": [
     "onLanguage:ino",
     "onCommand:arduino.debug.start",
-    "onCommand:arduino.languageserver.start"
+    "onCommand:arduino.languageserver.start",
+    "onCommand:arduino.languageserver.stop",
+    "onCommand:arduino.languageserver.restart"
   ],
   "contributes": {
     "languages": [
@@ -103,6 +105,16 @@
       {
         "command": "arduino.languageserver.start",
         "title": "Start Language Server",
+        "category": "Arduino"
+      },
+      {
+        "command": "arduino.languageserver.stop",
+        "title": "Stop Language Server",
+        "category": "Arduino"
+      },
+      {
+        "command": "arduino.languageserver.restart",
+        "title": "Restart Language Server",
         "category": "Arduino"
       },
       {
