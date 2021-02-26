@@ -1,19 +1,20 @@
 {
-  "name": "vscode-arduino-language-server",
+  "name": "vscode-arduino-tools",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.1-beta.1",
   "publisher": "arduino",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Arduino SA",
-  "description": "Arduino Language Server extension for VS Code",
+  "description": "Arduino Tools extension for VS Code",
   "main": "./dist/bundle",
   "engines": {
     "vscode": "^1.46.0"
   },
   "scripts": {
-    "prepare": "yarn clean && yarn compile && yarn webpack && yarn package",
+    "prepare": "yarn clean && yarn compile && yarn lint && yarn webpack && yarn package",
     "clean": "rimraf ./lib ./dist ./build-artifacts",
     "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
     "watch": "tsc -w -p ./",
     "webpack": "webpack --config ./configs/webpack.config.js",
     "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts"
@@ -28,7 +29,10 @@
   "devDependencies": {
     "@types/node": "^10.14.9",
     "@types/vscode": "^1.41.0",
+    "@typescript-eslint/eslint-plugin": "^4.8.0",
+    "@typescript-eslint/parser": "^4.8.0",
     "copy-webpack-plugin": "^6.1.0",
+    "eslint": "^7.9.0",
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2",
     "typescript": "^3.8.3",
@@ -61,10 +65,11 @@
   ],
   "categories": [
     "Programming Languages",
-    "Formatters"
+    "Formatters",
+    "Debuggers"
   ],
   "galleryBanner": {
-    "color": "#006468",
+    "color": "#005c5f",
     "theme": "light"
   },
   "activationEvents": [
