@@ -1,6 +1,5 @@
-import * as fs from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
-import { promisify } from 'util';
 import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
@@ -140,7 +139,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
 
     let customDebugConfig = {};
     try {
-        const raw = await promisify(fs.readFile)(path.join(config.sketchPath, 'debug_custom.json'), { encoding: 'utf8' });
+        const raw = await fs.readFile(path.join(config.sketchPath, 'debug_custom.json'), { encoding: 'utf8' });
         customDebugConfig = JSON.parse(raw);
     } catch { }
     const mergedDebugConfig = deepmerge(defaultDebugConfig, customDebugConfig);
@@ -199,7 +198,7 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
         let logPath: string | undefined = undefined;
         if (typeof log === 'string') {
             try {
-                const stats = await promisify(fs.stat)(log);
+                const stats = await fs.stat(log);
                 if (stats.isDirectory()) {
                     logPath = log;
                 }
