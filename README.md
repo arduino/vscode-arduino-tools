@@ -8,7 +8,7 @@ VS Code extension for Arduino Tools, such as language features and debugger. Thi
 
 High quality bug reports and feature requests are valuable contributions to the project.
 
-Before reporting an issue search existing pull requests and issues to see if it was already reported. If you have additional information to provide about an existing issue, please comment there. You can use the Reactions feature if you only want to express support.
+Before reporting an issue search existing pull requests and issues to see if it was already reported. If yfou have additional information to provide about an existing issue, please comment there. You can use the Reactions feature if you only want to express support.
 
 Qualities of an excellent report:
 
@@ -19,7 +19,7 @@ Qualities of an excellent report:
 
 ## How to contribute
 
-Contributions are welcome! Here are all the way you can contribute to the project.
+Contributions are welcome! Here are all the ways you can contribute to the project.
 
 ### Pull Requests
 
