@@ -1,5 +1,3 @@
-<img src="https://content.arduino.cc/website/Arduino_logo_teal.svg" height="100" align="right" />
-
 ## Arduino Tools extension for VS Code
 
 VS Code extension for Arduino Tools, such as language features and debugger. This extension is part of the [Arduino IDE 2](https://github.com/arduino/arduino-ide).
