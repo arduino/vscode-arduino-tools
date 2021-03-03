@@ -1,5 +1,5 @@
-import { promises as fs } from 'fs';
 import * as path from 'path';
+import { promises as fs } from 'fs';
 import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
@@ -34,6 +34,11 @@ interface DebugConfig {
         readonly name?: string;
     }
     readonly sketchPath: string;
+    /**
+     * Location where the `launch.config` will be created on the fly before starting every debug session.
+     * If not defined, it falls back to `sketchPath/.vscode/launch.json`.
+     */
+    readonly configPath?: string;
 }
 
 interface DebugInfo {
@@ -143,9 +148,6 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
         customDebugConfig = JSON.parse(raw);
     } catch { }
     const mergedDebugConfig = deepmerge(defaultDebugConfig, customDebugConfig);
-
-    // Create the `launch.json` if it does not exist. Otherwise, update the existing.
-    const configuration = vscode.workspace.getConfiguration();
     const launchConfig = {
         version: '0.2.0',
         'configurations': [
@@ -154,7 +156,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
             }
         ]
     };
-    await configuration.update('launch', launchConfig, false);
+    await updateLaunchConfig(config, launchConfig);
     return vscode.debug.startDebugging(undefined, mergedDebugConfig);
 }
 
@@ -246,4 +248,17 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
             }
         }
     );
+}
+
+/**
+ * Instead of writing the `launch.json` to the workspace, the file is written to the temporary binary output location.
+ */
+async function updateLaunchConfig(debugConfig: DebugConfig, launchConfig: object): Promise<void> {
+    if (debugConfig.configPath) {
+        await fs.mkdir(debugConfig.configPath, { recursive: true });
+        await fs.writeFile(path.join(debugConfig.configPath, 'launch.json'), JSON.stringify(launchConfig, null, 2));
+    } else {
+        const configuration = vscode.workspace.getConfiguration();
+        await configuration.update('launch', launchConfig, false);
+    }
 }
