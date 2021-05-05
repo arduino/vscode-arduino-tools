@@ -11,6 +11,7 @@ import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, Rev
 interface LanguageServerConfig {
     readonly lsPath: string;
     readonly cliPath: string;
+    readonly cliConfigPath: string;
     readonly clangdPath: string;
     readonly board: {
         readonly fqbn: string;
@@ -187,8 +188,8 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
 }
 
 async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
-    const { lsPath: command, clangdPath, cliPath, board, flags, env, log } = config;
-    const args = ['-clangd', clangdPath, '-cli', cliPath, '-fqbn', board.fqbn];
+    const { lsPath: command, clangdPath, cliPath, cliConfigPath, board, flags, env, log } = config;
+    const args = ['-clangd', clangdPath, '-cli', cliPath, '-cli-config', cliConfigPath, '-fqbn', board.fqbn];
     if (board.name) {
         args.push('-board-name', board.name);
     }
