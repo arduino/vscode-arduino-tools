@@ -29,7 +29,8 @@ interface LanguageServerConfig {
 }
 
 interface DebugConfig {
-    readonly cliDaemonAddr: string;
+    readonly cliPath?: string;
+    readonly cliDaemonAddr?: string;
     readonly board: {
         readonly fqbn: string;
         readonly name?: string;
@@ -103,7 +104,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     let rawStdErr: string | undefined = undefined;
     try {
         const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json'];
-        const { stdout, stderr } = spawnSync(config.cliDaemonAddr, args, { encoding: 'utf8' });
+        const { stdout, stderr } = spawnSync(config?.cliPath || '.', args, { encoding: 'utf8' });
         rawStdout = stdout.trim();
         rawStdErr = stderr.trim();
     } catch (err) {

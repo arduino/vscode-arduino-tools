@@ -1,18 +1,11 @@
-name: VS Code Arduino Tools
+name: Build
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
   pull_request:
     branches:
       - main
-  schedule:
-    - cron: '0 2 * * *' # run every day at 2AM
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -22,26 +15,9 @@ jobs:
       - name: Install Node.js 12.x
         uses: actions/setup-node@v1
         with:
-          node-version: '12.x'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "12.x"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Build VS Code Extension
         run: |
-            yarn
-
-      - name: Upload VS Code Extension [GitHub Actions]
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-artifacts
-          path: build-artifacts/
-
-      - name: Upload VS Code Extension [S3]
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
-        uses: docker://plugins/s3
-        env:
-          PLUGIN_SOURCE: "build-artifacts/*"
-          PLUGIN_STRIP_PREFIX: "build-artifacts/"
-          PLUGIN_TARGET: "/vscode-arduino-tools/nightly"
-          PLUGIN_BUCKET: ${{ secrets.DOWNLOADS_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          yarn
