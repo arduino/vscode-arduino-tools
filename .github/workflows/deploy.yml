@@ -36,7 +36,7 @@ jobs:
         env:
           PLUGIN_SOURCE: "build-artifacts/*"
           PLUGIN_STRIP_PREFIX: "build-artifacts/"
-          PLUGIN_TARGET: "/vscode-arduino-tools/nightly"
+          PLUGIN_TARGET: "/vscode-arduino-tools"
           PLUGIN_BUCKET: ${{ secrets.DOWNLOADS_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
