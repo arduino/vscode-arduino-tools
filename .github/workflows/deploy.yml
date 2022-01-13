@@ -1,0 +1,42 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Node.js 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: "12.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Build VS Code Extension
+        run: |
+          yarn
+
+      - name: Upload VS Code Extension [GitHub Actions]
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: build-artifacts/
+
+      - name: Upload VS Code Extension [S3]
+        uses: docker://plugins/s3
+        env:
+          PLUGIN_SOURCE: "build-artifacts/*"
+          PLUGIN_STRIP_PREFIX: "build-artifacts/"
+          PLUGIN_TARGET: "/vscode-arduino-tools"
+          PLUGIN_BUCKET: ${{ secrets.DOWNLOADS_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

@@ -10,8 +10,8 @@ import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, Rev
 
 interface LanguageServerConfig {
     readonly lsPath: string;
-    readonly cliPath: string;
-    readonly cliConfigPath: string;
+    readonly cliDaemonAddr: string;
+    readonly cliDaemonInstance: string;
     readonly clangdPath: string;
     readonly board: {
         readonly fqbn: string;
@@ -29,7 +29,8 @@ interface LanguageServerConfig {
 }
 
 interface DebugConfig {
-    readonly cliPath: string;
+    readonly cliPath?: string;
+    readonly cliDaemonAddr?: string;
     readonly board: {
         readonly fqbn: string;
         readonly name?: string;
@@ -103,7 +104,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     let rawStdErr: string | undefined = undefined;
     try {
         const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json'];
-        const { stdout, stderr } = spawnSync(config.cliPath, args, { encoding: 'utf8' });
+        const { stdout, stderr } = spawnSync(config?.cliPath || '.', args, { encoding: 'utf8' });
         rawStdout = stdout.trim();
         rawStdErr = stderr.trim();
     } catch (err) {
@@ -188,8 +189,8 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
 }
 
 async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
-    const { lsPath: command, clangdPath, cliPath, cliConfigPath, board, flags, env, log } = config;
-    const args = ['-clangd', clangdPath, '-cli', cliPath, '-cli-config', cliConfigPath, '-fqbn', board.fqbn];
+    const { lsPath: command, clangdPath, cliDaemonAddr, cliDaemonInstance, board, flags, env, log } = config;
+    const args = ['-clangd', clangdPath, '-cli-daemon-addr', cliDaemonAddr, '-cli-daemon-instance', cliDaemonInstance, '-fqbn', board.fqbn];
     if (board.name) {
         args.push('-board-name', board.name);
     }

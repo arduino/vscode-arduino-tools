@@ -42,7 +42,9 @@ In order to ease code reviews and have your contributions merged faster, here is
 - Your PR must pass all CI tests before we will merge it. If you're seeing an error and don't think it's your fault, it may not be! The reviewer will help you if there are test failures that seem not related to the change you are making.
 
 ## Build
+
 To build the Arduino Tools VS Code extension (VSIX), execute:
+
 ```
 yarn
 ```
@@ -54,6 +56,13 @@ Or from the [_Command Palette_](https://code.visualstudio.com/docs/editor/extens
 You can also start the extension in debug mode.
 Open the `Debug` panel, and select the `Launch Arduino Tools – VS Code Extension` launch configuration.
 
+## Deployments
+
+To deploy a new release of the tools you have to do the following:
+
+- update the `version` in the package.json file
+- push a tag to the repo with `v` and the version you spacified in the package.json, for example `v0.0.2-beta.1`
+
 ## Donations
 
 This open source code was written by the Arduino team and is maintained on a daily basis with the help of the community. We invest a considerable amount of time in development, testing and optimization. Please consider [donating](https://www.arduino.cc/en/donate/) or [sponsoring](https://github.com/sponsors/arduino) to support our work, as well as [buying original Arduino boards](https://store.arduino.cc/) which is the best way to make sure our effort can continue in the long term.
@@ -61,4 +70,3 @@ This open source code was written by the Arduino team and is maintained on a dai
 ## License
 
 The code contained in this repository is licensed under the terms of the Apache 2.0 license. If you have questions about licensing please contact us at [license@arduino.cc](mailto:license@arduino.cc).
-
