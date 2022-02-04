@@ -1,6 +1,5 @@
 {
   "tslint.configFile": "./tslint.json",
-  "editor.formatOnSave": true,
   "files.exclude": {
     "**/lib": false
   },
