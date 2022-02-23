@@ -41,7 +41,7 @@ const config = {
             buildFiles: [
                 {
                     path: path.resolve(__dirname, '..', 'dist', 'terminateProcess.sh'),
-                    fileMode: '555'
+                    fileMode: '755'
                 }
             ]
         })
