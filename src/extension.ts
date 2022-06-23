@@ -7,6 +7,7 @@ import deepmerge from 'deepmerge';
 import { Mutex } from 'async-mutex';
 import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
+import { DidCompleteBuildNotification, DidCompleteBuildParams } from './protocol';
 
 interface LanguageServerConfig {
     readonly lsPath: string;
@@ -72,10 +73,10 @@ export function activate(context: ExtensionContext) {
                 const started = await startLanguageServer(context, config);
                 languageServerIsRunning = started;
                 return languageServerIsRunning ? config.board.fqbn : undefined;
-            } catch (e) {
-                console.log(e);
+            } catch (err) {
+                console.error('Failed to start the language server.', err);
                 languageServerIsRunning = false;
-                throw e;
+                throw err;
             } finally {
                 unlock();
             }
@@ -94,7 +95,14 @@ export function activate(context: ExtensionContext) {
                 return vscode.commands.executeCommand('arduino.languageserver.start', latestConfig);
             }
         }),
-        vscode.commands.registerCommand('arduino.debug.start', (config: DebugConfig) => startDebug(context, config))
+        vscode.commands.registerCommand('arduino.debug.start', (config: DebugConfig) => startDebug(context, config)),
+        vscode.commands.registerCommand('arduino.languageserver.notifyBuildDidComplete', (params: DidCompleteBuildParams) => {
+            if (languageClient) {
+                languageClient.sendNotification(DidCompleteBuildNotification.TYPE, params);
+            } else {
+                vscode.window.showWarningMessage('Language server is not running.');
+            }
+        })
     );
 }
 
@@ -108,8 +116,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
         rawStdout = stdout.trim();
         rawStdErr = stderr.trim();
     } catch (err) {
-        const message = err instanceof Error ? err.stack || err.message : 'Unknown error';
-        vscode.window.showErrorMessage(message);
+        showError(err);
         return false;
     }
     if (!rawStdout) {
@@ -125,7 +132,8 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     try {
         info = JSON.parse(rawStdout);
     } catch (err) {
-        vscode.window.showErrorMessage(err);
+        console.error(`Could not parse JSON: <${rawStdout}>`);
+        showError(err);
     }
     if (!info) {
         return false;
@@ -190,7 +198,7 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
 
 async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
     const { lsPath: command, clangdPath, cliDaemonAddr, cliDaemonInstance, board, flags, env, log } = config;
-    const args = ['-clangd', clangdPath, '-cli-daemon-addr', cliDaemonAddr, '-cli-daemon-instance', cliDaemonInstance, '-fqbn', board.fqbn];
+    const args = ['-clangd', clangdPath, '-cli-daemon-addr', cliDaemonAddr, '-cli-daemon-instance', cliDaemonInstance, '-fqbn', board.fqbn, '-skip-libraries-discovery-on-rebuild'];
     if (board.name) {
         args.push('-board-name', board.name);
     }
@@ -250,6 +258,12 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
             }
         }
     );
+}
+
+function showError(err: unknown): void {
+    console.error(err);
+    const message = err instanceof Error ? err.message : typeof err === 'string' ? err : String(err);
+    vscode.window.showErrorMessage(message);
 }
 
 /**

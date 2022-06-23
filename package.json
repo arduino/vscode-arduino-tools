@@ -123,6 +123,11 @@
         "category": "Arduino"
       },
       {
+        "command": "arduino.languageserver.notifyBuildDidComplete",
+        "title": "Notify Build Did Complete",
+        "category": "Arduino"
+      },
+      {
         "command": "arduino.debug.start",
         "title": "Start Debug",
         "category": "Arduino"
