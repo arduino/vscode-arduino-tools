@@ -27,6 +27,7 @@ interface LanguageServerConfig {
     readonly log?: boolean | string;
     readonly env?: any;
     readonly flags?: string[];
+    readonly realTimeDiagnostics?: boolean;
 }
 
 interface DebugConfig {
@@ -201,6 +202,9 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
     const args = ['-clangd', clangdPath, '-cli-daemon-addr', cliDaemonAddr, '-cli-daemon-instance', cliDaemonInstance, '-fqbn', board.fqbn, '-skip-libraries-discovery-on-rebuild'];
     if (board.name) {
         args.push('-board-name', board.name);
+    }
+    if (typeof config.realTimeDiagnostics === 'boolean' && !config.realTimeDiagnostics) {
+        args.push('-no-real-time-diagnostics');
     }
     if (flags && flags.length) {
         args.push(...flags);

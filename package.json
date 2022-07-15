@@ -1,7 +1,7 @@
 {
   "name": "vscode-arduino-tools",
   "private": true,
-  "version": "0.0.2-beta.3",
+  "version": "0.0.2-beta.4",
   "publisher": "arduino",
   "license": "Apache-2.0",
   "author": "Arduino SA",
