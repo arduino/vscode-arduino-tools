@@ -74,8 +74,8 @@
     "theme": "light"
   },
   "activationEvents": [
+    "onStartupFinished",
     "onLanguage:ino",
-    "onCommand:arduino.ide2Path",
     "onCommand:arduino.debug.start",
     "onCommand:arduino.languageserver.start",
     "onCommand:arduino.languageserver.stop",
@@ -132,11 +132,6 @@
       {
         "command": "arduino.debug.start",
         "title": "Start Debug",
-        "category": "Arduino"
-      },
-      {
-        "command": "arduino.ide2Path",
-        "title": "Print IDE2 Path",
         "category": "Arduino"
       }
     ],

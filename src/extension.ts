@@ -1,5 +1,7 @@
+import * as cp from 'child_process';
 import * as path from 'path';
-import { promises as fs } from 'fs';
+import * as os from 'os';
+import { promises as fs, constants } from 'fs';
 import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
@@ -9,11 +11,52 @@ import vscode, { ExtensionContext } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
 import { DidCompleteBuildNotification, DidCompleteBuildParams } from './protocol';
 
-interface LanguageServerConfig {
+interface LanguageServerExecutables {
     readonly lsPath: string;
-    readonly cliDaemonAddr: string;
-    readonly cliDaemonInstance: string;
     readonly clangdPath: string;
+    readonly cliPath: string;
+}
+namespace LanguageServerExecutables {
+    export function fromDir(dirPath: string): LanguageServerExecutables {
+        const appRootPath = fromAppRootPath();
+        return appendExeOnWindows({
+            cliPath: path.join(dirPath, appRootPath, 'arduino-cli'),
+            lsPath: path.join(dirPath, appRootPath, 'arduino-language-server'),
+            clangdPath: path.join(dirPath, appRootPath, 'clangd'),
+        });
+    }
+    export async function validate(executables: LanguageServerExecutables): Promise<void> {
+        await Promise.all(Object.values(executables).map(canExecute));
+    }
+    export async function canExecute(pathToExecutable: string): Promise<void> {
+        return fs.access(pathToExecutable, constants.X_OK);
+    }
+    function appendExeOnWindows(executables: LanguageServerExecutables): LanguageServerExecutables {
+        if (process.platform === 'win32') {
+            const exe = '.exe';
+            return {
+                cliPath: executables.cliPath + exe,
+                lsPath: executables.lsPath + exe,
+                clangdPath: executables.clangdPath + exe,
+            };
+        }
+        return executables;
+    }
+    function fromAppRootPath(): string {
+        const defaultPath = path.join('app', 'node_modules', 'arduino-ide-extension', 'build');
+        switch (process.platform) {
+            case 'win32':
+            case 'linux':
+                return path.join('resources', defaultPath);
+            case 'darwin':
+                return path.join('Contents', 'Resources', defaultPath);
+            default:
+                throw new Error(`Unsupported platform: ${process.platform}`);
+        }
+    }
+}
+
+interface LanguageServerConfig {
     readonly board: {
         readonly fqbn: string;
         readonly name?: string;
@@ -67,28 +110,55 @@ const languageServerStartMutex = new Mutex();
 export let languageServerIsRunning = false; // TODO: use later for `start`, `stop`, and `restart` language server.
 
 let ide2Path: string | undefined;
+let executables: LanguageServerExecutables | undefined;
+
+function useIde2Path(ide2PathToUse: string | undefined = vscode.workspace.getConfiguration('arduinoTools').get('ide2Path')): string | undefined {
+    ide2Path = ide2PathToUse;
+    executables = findExecutables();
+    if (executables) {
+        vscode.window.showInformationMessage(`Executables: ${JSON.stringify(executables)}`);
+    }
+    return ide2Path;
+}
+function findExecutables(): LanguageServerExecutables | undefined {
+    if (!ide2Path) {
+        return undefined;
+    }
+    return LanguageServerExecutables.fromDir(ide2Path);
+}
+
+interface Platform {
+    readonly boards: Board[];
+}
+interface Board {
+    readonly name: string;
+    readonly fqbn?: string;
+}
+namespace Board {
+    export function installed(board: Board): board is Board & { fqbn: string } {
+        return !!board.fqbn;
+    }
+}
 
 export function activate(context: ExtensionContext) {
-    ide2Path = vscode.workspace.getConfiguration('vscode-arduino-tools').get('arduinoTools.ide2Path');
+    useIde2Path();
     vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
     vscode.workspace.onDidChangeConfiguration(event => {
         if (event.affectsConfiguration('arduinoTools.ide2Path')) {
-            ide2Path = vscode.workspace.getConfiguration('vscode-arduino-tools').get('arduinoTools.ide2Path');
-            vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
+            useIde2Path();
         }
     });
-    console.log('hello');
     context.subscriptions.push(
-        vscode.commands.registerCommand('arduino.ide2Path', () => {
-            ide2Path = vscode.workspace.getConfiguration('vscode-arduino-tools').get('arduinoTools.ide2Path');
-            vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
-        }),
-        vscode.commands.registerCommand('arduino.languageserver.start', async (config: LanguageServerConfig) => {
+        vscode.commands.registerCommand('arduino.languageserver.start', async () => {
             const unlock = await languageServerStartMutex.acquire();
             try {
-                const started = await startLanguageServer(context, config);
-                languageServerIsRunning = started;
-                return languageServerIsRunning ? config.board.fqbn : undefined;
+                const fqbn = await selectFqbn();
+                if (fqbn) {
+                    const started = await startLanguageServer(context, { board: { fqbn }  });
+                    languageServerIsRunning = started;
+                    return languageServerIsRunning ? fqbn : undefined;
+                }
+                return false;
             } catch (err) {
                 console.error('Failed to start the language server.', err);
                 languageServerIsRunning = false;
@@ -118,9 +188,50 @@ export function activate(context: ExtensionContext) {
             } else {
                 vscode.window.showWarningMessage('Language server is not running.');
             }
-        })
+        }),
     );
 }
+
+async function selectFqbn(): Promise<string | undefined> {
+    if (executables) {
+        const boards = await installedBoards();
+        const fqbn = await vscode.window.showQuickPick(boards.map(({fqbn}) => fqbn));
+        return fqbn;
+    }
+    return undefined;
+}
+async function coreList(): Promise<Platform[]> {
+    const raw = await cliExec(['core', 'list', '--format', 'json']);
+    return JSON.parse(raw) as Platform[];
+}
+async function installedBoards(): Promise<(Board & {fqbn: string})[]> {
+    const platforms = await coreList();
+    return platforms.map(({boards}) => boards).reduce((acc, curr) => {
+        acc.push(...curr);
+        return acc;
+    }, [] as Board[]).filter(Board.installed);
+}
+
+async function cliExec(args: string[] = []): Promise<string> {
+    if (!executables) {
+        throw new Error("Could not find the Arduino executables. Did you set the 'ide2Path' correctly?");
+    }
+    const out: Buffer[] = [];
+    const err: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+      const child = cp.spawn(`"${executables?.cliPath}"`, args, { shell: true });
+      child.stdout.on('data', (data) => out.push(data));
+      child.stderr.on('data', (data) => err.push(data));
+      child.on('error', reject);
+      child.on('exit', (code) => {
+        if (code === 0) {
+            return resolve(Buffer.concat(out).toString('utf-8'));
+        } else {
+            return reject(Buffer.concat(err).toString('utf-8'));
+        }
+      });
+    });
+  };
 
 async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boolean> {
     let info: DebugInfo | undefined = undefined;
@@ -200,9 +311,13 @@ async function stopLanguageServer(context: ExtensionContext): Promise<void> {
 
 async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<boolean> {
     await stopLanguageServer(context);
+    if (!executables) {
+        vscode.window.showErrorMessage("Failed to start the language server. Could not find the Arduino executables. Did you set the 'ide2Path' correctly?");
+        return false;
+    }
     if (!languageClient || !deepEqual(latestConfig, config)) {
         latestConfig = config;
-        languageClient = await buildLanguageClient(config);
+        languageClient = await buildLanguageClient(Object.assign(config, executables));
         crashCount = 0;
     }
 
@@ -212,9 +327,9 @@ async function startLanguageServer(context: ExtensionContext, config: LanguageSe
     return true;
 }
 
-async function buildLanguageClient(config: LanguageServerConfig): Promise<LanguageClient> {
-    const { lsPath: command, clangdPath, cliDaemonAddr, cliDaemonInstance, board, flags, env, log } = config;
-    const args = ['-clangd', clangdPath, '-cli-daemon-addr', cliDaemonAddr, '-cli-daemon-instance', cliDaemonInstance, '-fqbn', board.fqbn, '-skip-libraries-discovery-on-rebuild'];
+async function buildLanguageClient(config: LanguageServerConfig & LanguageServerExecutables): Promise<LanguageClient> {
+    const { lsPath: command, clangdPath, board, flags, env, log } = config;
+    const args = ['-cli', config.cliPath, '-cli-config', path.join(os.homedir(), '.arduinoIDE/arduino-cli.yaml'), '-clangd', clangdPath, '-fqbn', board.fqbn ?? 'arduino:avr:uno', '-skip-libraries-discovery-on-rebuild'];
     if (board.name) {
         args.push('-board-name', board.name);
     }
