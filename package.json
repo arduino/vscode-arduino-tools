@@ -135,6 +135,26 @@
         "category": "Arduino"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "arduino.languageserver.start",
+          "when": "!inoLSReady"
+        },
+        {
+          "command": "arduino.languageserver.stop",
+          "when": "inoLSReady"
+        },
+        {
+          "command": "arduino.languageserver.restart",
+          "when": "inoLSReady"
+        },
+        {
+          "command": "arduino.languageserver.notifyBuildDidComplete",
+          "when": "inoLSReady"
+        }
+      ]
+    },
     "configuration": {
       "title": "Arduino Tools",
       "properties": {

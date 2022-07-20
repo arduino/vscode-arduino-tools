@@ -107,7 +107,9 @@ let languageServerDisposable: vscode.Disposable | undefined;
 let latestConfig: LanguageServerConfig | undefined;
 let crashCount = 0;
 const languageServerStartMutex = new Mutex();
-export let languageServerIsRunning = false; // TODO: use later for `start`, `stop`, and `restart` language server.
+function signalLanguageServerStateChange(ready: boolean): void {
+    vscode.commands.executeCommand('setContext', 'inoLSReady', ready);
+}
 
 let ide2Path: string | undefined;
 let executables: LanguageServerExecutables | undefined;
@@ -142,7 +144,6 @@ namespace Board {
 
 export function activate(context: ExtensionContext) {
     useIde2Path();
-    vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
     vscode.workspace.onDidChangeConfiguration(event => {
         if (event.affectsConfiguration('arduinoTools.ide2Path')) {
             useIde2Path();
@@ -150,18 +151,20 @@ export function activate(context: ExtensionContext) {
     });
     context.subscriptions.push(
         vscode.commands.registerCommand('arduino.languageserver.start', async () => {
+            if (languageClient) {
+                throw new Error('The Arduino language server is already running.');
+            }
             const unlock = await languageServerStartMutex.acquire();
             try {
                 const fqbn = await selectFqbn();
                 if (fqbn) {
-                    const started = await startLanguageServer(context, { board: { fqbn }  });
-                    languageServerIsRunning = started;
-                    return languageServerIsRunning ? fqbn : undefined;
+                    await startLanguageServer(context, { board: { fqbn } });
+                    signalLanguageServerStateChange(true);
                 }
                 return false;
             } catch (err) {
                 console.error('Failed to start the language server.', err);
-                languageServerIsRunning = false;
+                signalLanguageServerStateChange(false);
                 throw err;
             } finally {
                 unlock();
@@ -171,7 +174,7 @@ export function activate(context: ExtensionContext) {
             const unlock = await languageServerStartMutex.acquire();
             try {
                 await stopLanguageServer(context);
-                languageServerIsRunning = false;
+                signalLanguageServerStateChange(false);
             } finally {
                 unlock();
             }
@@ -195,7 +198,7 @@ export function activate(context: ExtensionContext) {
 async function selectFqbn(): Promise<string | undefined> {
     if (executables) {
         const boards = await installedBoards();
-        const fqbn = await vscode.window.showQuickPick(boards.map(({fqbn}) => fqbn));
+        const fqbn = await vscode.window.showQuickPick(boards.map(({ fqbn }) => fqbn));
         return fqbn;
     }
     return undefined;
@@ -204,9 +207,9 @@ async function coreList(): Promise<Platform[]> {
     const raw = await cliExec(['core', 'list', '--format', 'json']);
     return JSON.parse(raw) as Platform[];
 }
-async function installedBoards(): Promise<(Board & {fqbn: string})[]> {
+async function installedBoards(): Promise<(Board & { fqbn: string })[]> {
     const platforms = await coreList();
-    return platforms.map(({boards}) => boards).reduce((acc, curr) => {
+    return platforms.map(({ boards }) => boards).reduce((acc, curr) => {
         acc.push(...curr);
         return acc;
     }, [] as Board[]).filter(Board.installed);
@@ -219,19 +222,19 @@ async function cliExec(args: string[] = []): Promise<string> {
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     return new Promise((resolve, reject) => {
-      const child = cp.spawn(`"${executables?.cliPath}"`, args, { shell: true });
-      child.stdout.on('data', (data) => out.push(data));
-      child.stderr.on('data', (data) => err.push(data));
-      child.on('error', reject);
-      child.on('exit', (code) => {
-        if (code === 0) {
-            return resolve(Buffer.concat(out).toString('utf-8'));
-        } else {
-            return reject(Buffer.concat(err).toString('utf-8'));
-        }
-      });
+        const child = cp.spawn(`"${executables?.cliPath}"`, args, { shell: true });
+        child.stdout.on('data', (data) => out.push(data));
+        child.stderr.on('data', (data) => err.push(data));
+        child.on('error', reject);
+        child.on('exit', (code) => {
+            if (code === 0) {
+                return resolve(Buffer.concat(out).toString('utf-8'));
+            } else {
+                return reject(Buffer.concat(err).toString('utf-8'));
+            }
+        });
     });
-  };
+};
 
 async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boolean> {
     let info: DebugInfo | undefined = undefined;
@@ -303,8 +306,10 @@ async function stopLanguageServer(context: ExtensionContext): Promise<void> {
             languageClient.diagnostics.clear();
         }
         await languageClient.stop();
+        languageClient = undefined;
         if (languageServerDisposable) {
             languageServerDisposable.dispose();
+            languageServerDisposable = undefined;
         }
     }
 }
