@@ -66,8 +66,23 @@ let crashCount = 0;
 const languageServerStartMutex = new Mutex();
 export let languageServerIsRunning = false; // TODO: use later for `start`, `stop`, and `restart` language server.
 
+let ide2Path: string | undefined;
+
 export function activate(context: ExtensionContext) {
+    ide2Path = vscode.workspace.getConfiguration('vscode-arduino-tools').get('arduinoTools.ide2Path');
+    vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
+    vscode.workspace.onDidChangeConfiguration(event => {
+        if (event.affectsConfiguration('arduinoTools.ide2Path')) {
+            ide2Path = vscode.workspace.getConfiguration('vscode-arduino-tools').get('arduinoTools.ide2Path');
+            vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
+        }
+    });
+    console.log('hello');
     context.subscriptions.push(
+        vscode.commands.registerCommand('arduino.ide2Path', () => {
+            ide2Path = vscode.workspace.getConfiguration('vscode-arduino-tools').get('arduinoTools.ide2Path');
+            vscode.window.showInformationMessage('ide2Path: ' + ide2Path);
+        }),
         vscode.commands.registerCommand('arduino.languageserver.start', async (config: LanguageServerConfig) => {
             const unlock = await languageServerStartMutex.acquire();
             try {

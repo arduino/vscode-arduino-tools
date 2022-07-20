@@ -15,7 +15,7 @@
     "clean": "rimraf ./lib ./dist ./build-artifacts",
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
-    "watch": "tsc -w -p ./",
+    "watch": "webpack --config ./configs/webpack.config.js --watch",
     "webpack": "webpack --config ./configs/webpack.config.js",
     "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts"
   },
@@ -35,11 +35,12 @@
     "eslint": "^7.9.0",
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2",
-    "typescript": "^3.8.3",
+    "typescript": "^4.7.4",
+    "ts-loader": "^9.3.1",
     "vsce": "^1.66.0",
     "vscode": "^1.1.33",
-    "webpack": "^4.39.1",
-    "webpack-cli": "^3.3.6",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0",
     "webpack-permissions-plugin": "^1.0.7"
   },
   "dependencies": {
@@ -74,6 +75,7 @@
   },
   "activationEvents": [
     "onLanguage:ino",
+    "onCommand:arduino.ide2Path",
     "onCommand:arduino.debug.start",
     "onCommand:arduino.languageserver.start",
     "onCommand:arduino.languageserver.stop",
@@ -131,7 +133,21 @@
         "command": "arduino.debug.start",
         "title": "Start Debug",
         "category": "Arduino"
+      },
+      {
+        "command": "arduino.ide2Path",
+        "title": "Print IDE2 Path",
+        "category": "Arduino"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Arduino Tools",
+      "properties": {
+        "arduinoTools.ide2Path": {
+          "type": "string",
+          "description": "Absolute path to the Arduino IDE2 installation. This is required to use the Arduino CLI, language server, and other binaries from the IDE2"
+        }
+      }
+    }
   }
 }

@@ -9,11 +9,7 @@ const PermissionsOutputPlugin = require('webpack-permissions-plugin');
  */
 const config = {
     target: 'node',
-    node: {
-        __dirname: false,
-        __filename: false
-    },
-    entry: './lib/extension.js',
+    entry: './src/extension.ts',
     output: {
         path: path.resolve(__dirname, '..', 'dist'),
         filename: 'bundle.js',
@@ -26,8 +22,21 @@ const config = {
         vscode: 'commonjs vscode'
     },
     resolve: {
-        extensions: ['.js']
+        extensions: ['.ts', '.js']
     },
+    module: {
+        rules: [
+          {
+            test: /\.ts$/,
+            exclude: /node_modules/,
+            use: [
+              {
+                loader: 'ts-loader'
+              }
+            ]
+          }
+        ]
+      },
     plugins: [
         new CopyPlugin({
             patterns: [
