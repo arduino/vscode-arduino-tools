@@ -325,7 +325,7 @@ export function activate(context: ExtensionContext) {
             const sketchContext = sketchContexts.get(sketch);
             let fqbn: string | undefined = undefined;
             if (sketchContext) {
-                sketchContext.latestConfig?.board.fqbn;
+                fqbn = sketchContext.latestConfig?.board.fqbn;
             }
             if (!fqbn) {
                 fqbn = await selectFqbn();
@@ -333,13 +333,12 @@ export function activate(context: ExtensionContext) {
             if (!fqbn) {
                 return;
             }
-            const raw = await cliExec(['compile', '-b', fqbn, sketch]);
+            const raw = await cliExec(['compile', '-b', fqbn, sketch, '--format', 'json']);
             const languageClient = sketchContext?.languageClient;
             if (languageClient) {
                 const result = JSON.parse(raw) as CompileResult;
                 const buildOutputUri = Uri.file(result.builder_result.build_path).toString();
                 languageClient.sendNotification(DidCompleteBuildNotification.TYPE, { buildOutputUri });
-
             }
         }),
     );
