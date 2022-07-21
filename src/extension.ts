@@ -44,17 +44,23 @@ function discoverSketchesInFolder(folder: WorkspaceFolder): string[] {
     const sketchPaths: string[] = [];
     if (folder.uri.scheme === 'file') {
         const folderPath = folder.uri.fsPath;
-        const candidateSketchFilePaths = globbySync(['**/*.{ino,pde}', '!hardware/**', '!libraries/**'], { cwd: folderPath });
+        const candidateSketchFilePaths = globbySync(['**/*.{ino,pde}', '!hardware/**', '!libraries/**'], { cwd: folderPath, absolute: true });
         // filter out nested sketches
         candidateSketchFilePaths.sort((left, right) => left.length - right.length);
         console.log('workspace folder URI: ' + folder.uri.toString(), JSON.stringify(candidateSketchFilePaths));
-        for (const candidateSketchFilePath of candidateSketchFilePaths) {
-            const relative = path.relative(folderPath, candidateSketchFilePath);
+        for (const sketchFilePath of candidateSketchFilePaths) {
+            const relative = path.relative(folderPath, sketchFilePath);
             if (!relative) {
                 continue;
             }
             const segments = relative.split(path.sep);
             if (segments.length < 2) {
+                if (path.dirname(sketchFilePath) === folderPath && (path.basename(folderPath) + '.ino' === path.basename(sketchFilePath) || path.basename(folderPath) + '.pde' === path.basename(sketchFilePath))) {
+                    const sketchPath = path.join(sketchFilePath, '..');
+                    if (!sketchPaths.includes(sketchPath) && sketchPaths.every(otherSketchPath => !sketchFilePath.startsWith(otherSketchPath))) {
+                        sketchPaths.push(sketchPath);
+                    }
+                };
                 continue;
             }
             const sketchName = segments[segments.length - 2];
@@ -65,8 +71,8 @@ function discoverSketchesInFolder(folder: WorkspaceFolder): string[] {
             if (sketchFileExtension !== '.ino' && sketchFileExtension !== '.pde') {
                 continue;
             }
-            const sketchPath = path.join(folderPath, ...segments, '..');
-            if (!sketchPaths.includes(sketchPath) && sketchPaths.every(otherSketchPath => !sketchPath.startsWith(otherSketchPath))) {
+            const sketchPath = path.join(sketchFilePath, '..');
+            if (!sketchPaths.includes(sketchPath) && sketchPaths.every(otherSketchPath => !sketchFilePath.startsWith(otherSketchPath))) {
                 sketchPaths.push(sketchPath);
             }
         }
@@ -244,8 +250,16 @@ export function activate(context: ExtensionContext) {
         if (!sketch) {
             return;
         }
-        if (!getOrCreateContext(sketch)) {
-            vscode.window.showErrorMessage(`Could not location sketch under ${sketch}`);
+        if (!sketchContexts.has(sketch)) {
+            const sketches = sortedSketches();
+            if (!sketches.includes(sketch)) {
+                vscode.window.showErrorMessage(`Could not location sketch under ${sketch}`);
+            } else {
+                sketchContexts.set(sketch, {
+                    crashCount: 0,
+                    mutex: new Mutex()
+                });
+            }
         }
     }
     context.subscriptions.push(
@@ -340,6 +354,7 @@ export function activate(context: ExtensionContext) {
             }
         }),
     );
+    sortedSketches();
     vscode.workspace.textDocuments.forEach(didOpenTextDocument);
     useIde2Path();
 }
