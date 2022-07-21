@@ -1,15 +1,15 @@
+import { Mutex, MutexInterface } from 'async-mutex';
 import * as cp from 'child_process';
-import * as path from 'path';
-import * as os from 'os';
-import { promises as fs, constants } from 'fs';
 import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
-import WebRequest from 'web-request';
 import deepmerge from 'deepmerge';
-import { Mutex, MutexInterface } from 'async-mutex';
-import vscode, { ExtensionContext, TextDocument, Uri, WorkspaceFolder } from 'vscode';
-import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
+import { constants, promises as fs } from 'fs';
 import { globbySync } from 'globby';
+import * as os from 'os';
+import * as path from 'path';
+import vscode, { ExtensionContext, TextDocument, Uri, WorkspaceFolder } from 'vscode';
+import { CloseAction, ErrorAction, InitializeError, LanguageClient, Message, RevealOutputChannelOn } from 'vscode-languageclient';
+import WebRequest from 'web-request';
 import { DidCompleteBuildNotification } from './protocol';
 
 const sketchContexts: Map<string, SketchContext> = new Map();
@@ -333,6 +333,8 @@ export function activate(context: ExtensionContext) {
             if (!fqbn) {
                 return;
             }
+            // save all dirt editor for the sketch
+            await Promise.all(vscode.workspace.textDocuments.filter(document => getSketchPath(document.uri) === sketch).filter(document => document.isDirty).map(document => document.save()));
             const raw = await cliExec(['compile', '-b', fqbn, sketch, '--format', 'json']);
             const languageClient = sketchContext?.languageClient;
             if (languageClient) {
@@ -383,22 +385,30 @@ async function installedBoards(): Promise<(Board & { fqbn: string })[]> {
 
 async function cliExec(args: string[] = []): Promise<string> {
     if (!executables) {
-        throw new Error("Could not find the Arduino executables. Did you set the 'ide2Path' correctly?");
+        throw new Error("Could not find the Arduino executables. Did you set the 'arduinoTools.ide2Path' correctly?");
     }
     const out: Buffer[] = [];
     const err: Buffer[] = [];
     return new Promise((resolve, reject) => {
-        const child = cp.spawn(`"${executables?.cliPath}"`, args, { shell: true });
-        child.stdout.on('data', (data) => out.push(data));
-        child.stderr.on('data', (data) => err.push(data));
-        child.on('error', reject);
-        child.on('exit', (code) => {
-            if (code === 0) {
-                return resolve(Buffer.concat(out).toString('utf-8'));
-            } else {
-                return reject(Buffer.concat(err).toString('utf-8'));
-            }
-        });
+        try {
+            const child = cp.spawn(`"${executables?.cliPath}"`, args, { shell: true });
+            child.stdout.on('data', (data) => out.push(data));
+            child.stderr.on('data', (data) => err.push(data));
+            child.on('error', reject);
+            child.on('exit', (code) => {
+                if (code === 0) {
+                    const raw = Buffer.concat(out).toString('utf-8');
+                    console.log('cli exec OK with args: ' + JSON.stringify(args), raw);
+                    return resolve(raw);
+                } else {
+                    const error = Buffer.concat(err).toString('utf-8');
+                    console.error('cli exec err with args: ' + JSON.stringify(args), error);
+                    return reject(error);
+                }
+            });
+        } catch (err) {
+            console.error('cli exec could not spawn with args: ' + JSON.stringify(args), err);
+        }
     });
 };
 
@@ -483,7 +493,7 @@ async function stopLanguageServer(sketchContext: SketchContext): Promise<void> {
 async function startLanguageServer(context: ExtensionContext, sketchContext: SketchContext, config: LanguageServerConfig): Promise<boolean> {
     await stopLanguageServer(sketchContext);
     if (!executables) {
-        vscode.window.showErrorMessage("Failed to start the language server. Could not find the Arduino executables. Did you set the 'ide2Path' correctly?");
+        vscode.window.showErrorMessage("Failed to start the language server. Could not find the Arduino executables. Did you set the 'arduinoTools.ide2Path' correctly?");
         return false;
     }
 

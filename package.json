@@ -17,7 +17,7 @@
     "lint": "eslint src --ext ts",
     "watch": "webpack --config ./configs/webpack.config.js --watch",
     "webpack": "webpack --config ./configs/webpack.config.js",
-    "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts"
+    "package": "mkdirp build-artifacts && webpack --config ./configs/webpack.config.js --mode production --devtool hidden-source-map && vsce package --out ./build-artifacts"
   },
   "repository": {
     "type": "git",
