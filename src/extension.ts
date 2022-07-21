@@ -20,10 +20,11 @@ function getOrCreateContext(sketch: string): SketchContext | undefined {
     }
     let context = sketchContexts.get(sketch);
     if (!context) {
-        sketchContexts.set(sketch, {
+        context = {
             crashCount: 0,
             mutex: new Mutex()
-        });
+        };
+        sketchContexts.set(sketch, context);
     }
     return context;
 }
@@ -77,7 +78,7 @@ function discoverSketchesInFolder(folder: WorkspaceFolder): string[] {
             }
         }
     }
-    console.debug('discovered sketches in workspace folder' + folder.uri.toString() + ' ' + JSON.stringify(sketchPaths, null, 2));
+    console.debug('discovered sketches in workspace folder ' + folder.uri.toString() + ': ' + JSON.stringify(sketchPaths, null, 2));
     return sketchPaths;
 }
 
@@ -193,11 +194,6 @@ interface SketchContext {
     readonly mutex: MutexInterface;
 }
 
-// let languageClient: LanguageClient | undefined;
-// let languageServerDisposable: vscode.Disposable | undefined;
-// let latestConfig: LanguageServerConfig | undefined;
-// let crashCount = 0;
-// const mutex = new Mutex();
 function signalLanguageServerStateChange(ready: boolean): void {
     vscode.commands.executeCommand('setContext', 'inoLSReady', ready);
 }
@@ -250,16 +246,9 @@ export function activate(context: ExtensionContext) {
         if (!sketch) {
             return;
         }
-        if (!sketchContexts.has(sketch)) {
-            const sketches = sortedSketches();
-            if (!sketches.includes(sketch)) {
-                vscode.window.showErrorMessage(`Could not location sketch under ${sketch}`);
-            } else {
-                sketchContexts.set(sketch, {
-                    crashCount: 0,
-                    mutex: new Mutex()
-                });
-            }
+
+        if (!getOrCreateContext(sketch)) {
+            vscode.window.showErrorMessage(`Could not location sketch under ${sketch}`);
         }
     }
     context.subscriptions.push(
