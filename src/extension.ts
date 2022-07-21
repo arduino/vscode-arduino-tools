@@ -45,7 +45,9 @@ function discoverSketchesInFolder(folder: WorkspaceFolder): string[] {
     const sketchPaths: string[] = [];
     if (folder.uri.scheme === 'file') {
         const folderPath = folder.uri.fsPath;
-        const candidateSketchFilePaths = globbySync(['**/*.{ino,pde}', '!hardware/**', '!libraries/**'], { cwd: folderPath, absolute: true });
+        // manually join the matches with the root.
+        // when using `absolute` option, it creates path with forward slashes on Windows, and path compare won't work.
+        const candidateSketchFilePaths = globbySync(['**/*.{ino,pde}', '!hardware/**', '!libraries/**'], { cwd: folderPath }).map(match => path.join(folderPath, match));
         // filter out nested sketches
         candidateSketchFilePaths.sort((left, right) => left.length - right.length);
         console.log('workspace folder URI: ' + folder.uri.toString(), JSON.stringify(candidateSketchFilePaths));
