@@ -6,10 +6,87 @@ import { spawnSync } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
 import deepmerge from 'deepmerge';
-import { Mutex } from 'async-mutex';
-import vscode, { ExtensionContext } from 'vscode';
+import { Mutex, MutexInterface } from 'async-mutex';
+import vscode, { ExtensionContext, TextDocument, Uri, WorkspaceFolder } from 'vscode';
 import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
-import { DidCompleteBuildNotification, DidCompleteBuildParams } from './protocol';
+import { globbySync } from 'globby';
+import { DidCompleteBuildNotification } from './protocol';
+
+const sketchContexts: Map<string, SketchContext> = new Map();
+function getOrCreateContext(sketch: string): SketchContext | undefined {
+    const sketches = sortedSketches();
+    if (!sketches.includes(sketch)) {
+        return undefined;
+    }
+    let context = sketchContexts.get(sketch);
+    if (!context) {
+        sketchContexts.set(sketch, {
+            crashCount: 0,
+            mutex: new Mutex()
+        });
+    }
+    return context;
+}
+let _sortedSketches: string[] | undefined;
+function sortedSketches(): string[] {
+    if (_sortedSketches === undefined) {
+        _sortedSketches = vscode.workspace.workspaceFolders ? Array.from(vscode.workspace.workspaceFolders.map(discoverSketchesInFolder).reduce((acc, sketchPathsPerFolder) => {
+            sketchPathsPerFolder.forEach(sketchPath => acc.add(sketchPath));
+            return acc;
+        }, new Set<string>())) : [];
+        _sortedSketches.sort((left, right) => left.length - right.length);
+        signalDiscoveredSketches(!!_sortedSketches.length);
+    }
+    return _sortedSketches;
+}
+
+function discoverSketchesInFolder(folder: WorkspaceFolder): string[] {
+    const sketchPaths: string[] = [];
+    if (folder.uri.scheme === 'file') {
+        const folderPath = folder.uri.fsPath;
+        const candidateSketchFilePaths = globbySync(['**/*.{ino,pde}', '!hardware/**', '!libraries/**'], { cwd: folderPath });
+        // filter out nested sketches
+        candidateSketchFilePaths.sort((left, right) => left.length - right.length);
+        console.log('workspace folder URI: ' + folder.uri.toString(), JSON.stringify(candidateSketchFilePaths));
+        for (const candidateSketchFilePath of candidateSketchFilePaths) {
+            const relative = path.relative(folderPath, candidateSketchFilePath);
+            if (!relative) {
+                continue;
+            }
+            const segments = relative.split(path.sep);
+            if (segments.length < 2) {
+                continue;
+            }
+            const sketchName = segments[segments.length - 2];
+            const sketchFileExtension = segments[segments.length - 1].replace(
+                new RegExp(sketchName),
+                ''
+            );
+            if (sketchFileExtension !== '.ino' && sketchFileExtension !== '.pde') {
+                continue;
+            }
+            const sketchPath = path.join(folderPath, ...segments, '..');
+            if (!sketchPaths.includes(sketchPath) && sketchPaths.every(otherSketchPath => !sketchPath.startsWith(otherSketchPath))) {
+                sketchPaths.push(sketchPath);
+            }
+        }
+    }
+    console.debug('discovered sketches in workspace folder' + folder.uri.toString() + ' ' + JSON.stringify(sketchPaths, null, 2));
+    return sketchPaths;
+}
+
+function getSketchPath(documentUri: Uri): string | undefined {
+    if (documentUri.scheme === 'file') {
+        const documentPath = documentUri.fsPath;
+        const sketchPaths = sortedSketches();
+        for (const sketchPath of sketchPaths) {
+            if (documentPath.startsWith(sketchPath)) {
+                return sketchPath;
+            }
+        }
+    }
+    return undefined;
+}
 
 interface LanguageServerExecutables {
     readonly lsPath: string;
@@ -102,13 +179,24 @@ interface DebugInfo {
     }
 }
 
-let languageClient: LanguageClient | undefined;
-let languageServerDisposable: vscode.Disposable | undefined;
-let latestConfig: LanguageServerConfig | undefined;
-let crashCount = 0;
-const languageServerStartMutex = new Mutex();
+interface SketchContext {
+    languageClient?: LanguageClient | undefined;
+    languageServerDisposable?: vscode.Disposable | undefined;
+    latestConfig?: LanguageServerConfig | undefined;
+    crashCount: number;
+    readonly mutex: MutexInterface;
+}
+
+// let languageClient: LanguageClient | undefined;
+// let languageServerDisposable: vscode.Disposable | undefined;
+// let latestConfig: LanguageServerConfig | undefined;
+// let crashCount = 0;
+// const mutex = new Mutex();
 function signalLanguageServerStateChange(ready: boolean): void {
     vscode.commands.executeCommand('setContext', 'inoLSReady', ready);
+}
+function signalDiscoveredSketches(has: boolean): void {
+    vscode.commands.executeCommand('setContext', 'discoveredSketches', has);
 }
 
 let ide2Path: string | undefined;
@@ -129,6 +217,9 @@ function findExecutables(): LanguageServerExecutables | undefined {
     return LanguageServerExecutables.fromDir(ide2Path);
 }
 
+interface CompileResult {
+    readonly builder_result: { build_path: string };
+}
 interface Platform {
     readonly boards: Board[];
 }
@@ -143,22 +234,57 @@ namespace Board {
 }
 
 export function activate(context: ExtensionContext) {
-    useIde2Path();
-    vscode.workspace.onDidChangeConfiguration(event => {
-        if (event.affectsConfiguration('arduinoTools.ide2Path')) {
-            useIde2Path();
+    function didOpenTextDocument(document: TextDocument): void {
+        const documentUri = document.uri;
+        const folder = vscode.workspace.getWorkspaceFolder(documentUri);
+        if (!folder) {
+            return;
         }
-    });
+        const sketch = getSketchPath(documentUri);
+        if (!sketch) {
+            return;
+        }
+        if (!getOrCreateContext(sketch)) {
+            vscode.window.showErrorMessage(`Could not location sketch under ${sketch}`);
+        }
+    }
     context.subscriptions.push(
-        vscode.commands.registerCommand('arduino.languageserver.start', async () => {
-            if (languageClient) {
-                throw new Error('The Arduino language server is already running.');
+        vscode.workspace.onDidChangeWorkspaceFolders(() => {
+            _sortedSketches = undefined;
+            signalDiscoveredSketches(false);
+        }),
+        vscode.workspace.onDidOpenTextDocument(didOpenTextDocument),
+        vscode.workspace.onDidChangeWorkspaceFolders((event) => {
+            for (const folder of event.removed) {
+                const removedSketches = discoverSketchesInFolder(folder);
+                for (const removedSketch of removedSketches) {
+                    const context = sketchContexts.get(removedSketch);
+                    if (context) {
+                        sketchContexts.delete(removedSketch);
+                        stopLanguageServer(context);
+                    }
+                }
             }
-            const unlock = await languageServerStartMutex.acquire();
+        }),
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('arduinoTools.ide2Path')) {
+                useIde2Path();
+            }
+        }),
+        vscode.commands.registerCommand('arduino.languageserver.start', async () => {
+            const sketch = await selectSketch();
+            if (!sketch) {
+                return;
+            }
+            const sketchContext = getOrCreateContext(sketch);
+            if (!sketchContext) {
+                return;
+            }
+            const unlock = await sketchContext.mutex.acquire();
             try {
                 const fqbn = await selectFqbn();
                 if (fqbn) {
-                    await startLanguageServer(context, { board: { fqbn } });
+                    await startLanguageServer(context, sketchContext, { board: { fqbn } });
                     signalLanguageServerStateChange(true);
                 }
                 return false;
@@ -171,35 +297,72 @@ export function activate(context: ExtensionContext) {
             }
         }),
         vscode.commands.registerCommand('arduino.languageserver.stop', async () => {
-            const unlock = await languageServerStartMutex.acquire();
+            const sketch = await selectSketch();
+            if (!sketch) {
+                return;
+            }
+            const sketchContext = getOrCreateContext(sketch);
+            if (!sketchContext) {
+                return;
+            }
+            const unlock = await sketchContext.mutex.acquire();
             try {
-                await stopLanguageServer(context);
+                await stopLanguageServer(sketchContext);
                 signalLanguageServerStateChange(false);
             } finally {
                 unlock();
             }
         }),
-        vscode.commands.registerCommand('arduino.languageserver.restart', async () => {
-            if (latestConfig) {
-                return vscode.commands.executeCommand('arduino.languageserver.start', latestConfig);
-            }
-        }),
         vscode.commands.registerCommand('arduino.debug.start', (config: DebugConfig) => startDebug(context, config)),
-        vscode.commands.registerCommand('arduino.languageserver.notifyBuildDidComplete', (params: DidCompleteBuildParams) => {
+        vscode.commands.registerCommand('arduino.cli.verify', async () => {
+            const sketch = await selectSketch();
+            if (!sketch) {
+                return;
+            }
+            const sketchContext = sketchContexts.get(sketch);
+            let fqbn: string | undefined = undefined;
+            if (sketchContext) {
+                sketchContext.latestConfig?.board.fqbn;
+            }
+            if (!fqbn) {
+                fqbn = await selectFqbn();
+            }
+            if (!fqbn) {
+                return;
+            }
+            const raw = await cliExec(['compile', '-b', fqbn, sketch]);
+            const languageClient = sketchContext?.languageClient;
             if (languageClient) {
-                languageClient.sendNotification(DidCompleteBuildNotification.TYPE, params);
-            } else {
-                vscode.window.showWarningMessage('Language server is not running.');
+                const result = JSON.parse(raw) as CompileResult;
+                const buildOutputUri = Uri.file(result.builder_result.build_path).toString();
+                languageClient.sendNotification(DidCompleteBuildNotification.TYPE, { buildOutputUri });
+
             }
         }),
     );
+    vscode.workspace.textDocuments.forEach(didOpenTextDocument);
+    useIde2Path();
+}
+
+async function selectSketch(): Promise<string | undefined> {
+    const sketches = sortedSketches();
+    if (!sketches.length) {
+        return undefined;
+    }
+    if (sketches.length === 1) {
+        return sketches[0];
+    }
+    const items = sketches.map(sketch => ({ label: path.basename(sketch), description: sketch, sketch }));
+    const item = await vscode.window.showQuickPick(items, { matchOnDescription: true, placeHolder: 'Select a sketch' });
+    return item?.sketch;
 }
 
 async function selectFqbn(): Promise<string | undefined> {
     if (executables) {
         const boards = await installedBoards();
-        const fqbn = await vscode.window.showQuickPick(boards.map(({ fqbn }) => fqbn));
-        return fqbn;
+        const items = boards.map(({ name, fqbn }) => ({ label: name, description: fqbn, name, fqbn }));
+        const item = await vscode.window.showQuickPick(items, { matchOnDescription: true, placeHolder: 'Select a board to enable the Arduino language features' });
+        return item?.fqbn;
     }
     return undefined;
 }
@@ -300,39 +463,40 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     return vscode.debug.startDebugging(undefined, mergedDebugConfig);
 }
 
-async function stopLanguageServer(context: ExtensionContext): Promise<void> {
-    if (languageClient) {
-        if (languageClient.diagnostics) {
-            languageClient.diagnostics.clear();
+async function stopLanguageServer(sketchContext: SketchContext): Promise<void> {
+    if (sketchContext.languageClient) {
+        if (sketchContext.languageClient.diagnostics) {
+            sketchContext.languageClient.diagnostics.clear();
         }
-        await languageClient.stop();
-        languageClient = undefined;
-        if (languageServerDisposable) {
-            languageServerDisposable.dispose();
-            languageServerDisposable = undefined;
+        await sketchContext.languageClient.stop();
+        sketchContext.languageClient = undefined;
+        if (sketchContext.languageServerDisposable) {
+            sketchContext.languageServerDisposable.dispose();
+            sketchContext.languageServerDisposable = undefined;
         }
     }
 }
 
-async function startLanguageServer(context: ExtensionContext, config: LanguageServerConfig): Promise<boolean> {
-    await stopLanguageServer(context);
+async function startLanguageServer(context: ExtensionContext, sketchContext: SketchContext, config: LanguageServerConfig): Promise<boolean> {
+    await stopLanguageServer(sketchContext);
     if (!executables) {
         vscode.window.showErrorMessage("Failed to start the language server. Could not find the Arduino executables. Did you set the 'ide2Path' correctly?");
         return false;
     }
-    if (!languageClient || !deepEqual(latestConfig, config)) {
-        latestConfig = config;
-        languageClient = await buildLanguageClient(Object.assign(config, executables));
-        crashCount = 0;
+
+    if (!sketchContext.languageClient || !deepEqual(sketchContext.latestConfig, config)) {
+        sketchContext.latestConfig = config;
+        sketchContext.languageClient = await buildLanguageClient(Object.assign(config, executables), sketchContext);
+        sketchContext.crashCount = 0;
     }
 
-    languageServerDisposable = languageClient.start();
-    context.subscriptions.push(languageServerDisposable);
-    await languageClient.onReady();
+    sketchContext.languageServerDisposable = sketchContext.languageClient.start();
+    context.subscriptions.push(sketchContext.languageServerDisposable);
+    await sketchContext.languageClient.onReady();
     return true;
 }
 
-async function buildLanguageClient(config: LanguageServerConfig & LanguageServerExecutables): Promise<LanguageClient> {
+async function buildLanguageClient(config: LanguageServerConfig & LanguageServerExecutables, sketchContext: SketchContext): Promise<LanguageClient> {
     const { lsPath: command, clangdPath, board, flags, env, log } = config;
     const args = ['-cli', config.cliPath, '-cli-config', path.join(os.homedir(), '.arduinoIDE/arduino-cli.yaml'), '-clangd', clangdPath, '-fqbn', board.fqbn ?? 'arduino:avr:uno', '-skip-libraries-discovery-on-rebuild'];
     if (board.name) {
@@ -388,8 +552,8 @@ async function buildLanguageClient(config: LanguageServerConfig & LanguageServer
                     return ErrorAction.Shutdown;
                 },
                 closed: (): CloseAction => {
-                    crashCount++;
-                    if (crashCount < 5) {
+                    sketchContext.crashCount++;
+                    if (sketchContext.crashCount < 5) {
                         return CloseAction.Restart;
                     }
                     return CloseAction.DoNotRestart;

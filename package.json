@@ -27,7 +27,7 @@
     "url": "https://github.com/arduino/vscode-arduino-language-server/issues"
   },
   "devDependencies": {
-    "@types/node": "^10.14.9",
+    "@types/node": "^14.18.22",
     "@types/vscode": "^1.41.0",
     "@typescript-eslint/eslint-plugin": "^4.8.0",
     "@typescript-eslint/parser": "^4.8.0",
@@ -48,6 +48,7 @@
     "async-mutex": "^0.3.0",
     "deep-equal": "^2.0.3",
     "deepmerge": "^4.2.2",
+    "globby": "^13.1.2",
     "path": "^0.12.7",
     "vscode-languageclient": "^6.1.3",
     "web-request": "^1.0.7"
@@ -120,18 +121,8 @@
         "category": "Arduino"
       },
       {
-        "command": "arduino.languageserver.restart",
-        "title": "Restart Language Server",
-        "category": "Arduino"
-      },
-      {
-        "command": "arduino.languageserver.notifyBuildDidComplete",
-        "title": "Notify Build Did Complete",
-        "category": "Arduino"
-      },
-      {
-        "command": "arduino.debug.start",
-        "title": "Start Debug",
+        "command": "arduino.cli.verify",
+        "title": "Verify",
         "category": "Arduino"
       }
     ],
@@ -139,19 +130,15 @@
       "commandPalette": [
         {
           "command": "arduino.languageserver.start",
-          "when": "!inoLSReady"
+          "when": "discoveredSketches"
         },
         {
           "command": "arduino.languageserver.stop",
-          "when": "inoLSReady"
+          "when": "inoLSReady && discoveredSketches"
         },
         {
-          "command": "arduino.languageserver.restart",
-          "when": "inoLSReady"
-        },
-        {
-          "command": "arduino.languageserver.notifyBuildDidComplete",
-          "when": "inoLSReady"
+          "command": "arduino.cli.verify",
+          "when": "discoveredSketches"
         }
       ]
     },
