@@ -5,8 +5,8 @@ import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
 import deepmerge from 'deepmerge';
 import { Mutex } from 'async-mutex';
-import vscode, { ExtensionContext } from 'vscode';
-import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn } from 'vscode-languageclient';
+import vscode, { ExtensionContext, OutputChannel } from 'vscode';
+import { LanguageClient, CloseAction, ErrorAction, InitializeError, Message, RevealOutputChannelOn, LanguageClientOptions } from 'vscode-languageclient';
 import { DidCompleteBuildNotification, DidCompleteBuildParams } from './protocol';
 
 interface LanguageServerConfig {
@@ -28,6 +28,7 @@ interface LanguageServerConfig {
     readonly env?: any;
     readonly flags?: string[];
     readonly realTimeDiagnostics?: boolean;
+    readonly silentOutput?: boolean;
 }
 
 interface DebugConfig {
@@ -224,43 +225,48 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
             args.push('-logpath', logPath);
         }
     }
+    const clientOptions = {
+        initializationOptions: {},
+        documentSelector: ['ino', 'c', 'cpp', 'h', 'hpp', 'pde'],
+        uriConverters: {
+            code2Protocol: (uri: vscode.Uri): string => (uri.scheme ? uri : uri.with({ scheme: 'file' })).toString(),
+            protocol2Code: (uri: string) => vscode.Uri.parse(uri)
+        },
+        revealOutputChannelOn: RevealOutputChannelOn.Never,
+        initializationFailedHandler: (error: WebRequest.ResponseError<InitializeError>): boolean => {
+            vscode.window.showErrorMessage(`The language server is not able to serve any features. Initialization failed: ${error}.`);
+            return false;
+        },
+        errorHandler: {
+            error: (error: Error, message: Message, count: number): ErrorAction => {
+                vscode.window.showErrorMessage(`Error communicating with the language server: ${error}: ${message}.`);
+                if (count < 5) {
+                    return ErrorAction.Continue;
+                }
+                return ErrorAction.Shutdown;
+            },
+            closed: (): CloseAction => {
+                crashCount++;
+                if (crashCount < 5) {
+                    return CloseAction.Restart;
+                }
+                return CloseAction.DoNotRestart;
+            }
+        }
+    } as LanguageClientOptions;
+    if (!!config.silentOutput) {
+        clientOptions.outputChannel = noopOutputChannel('Arduino Language Server');
+    }
+    const serverOptions = {
+        command,
+        args,
+        options: { env },
+    };
     return new LanguageClient(
         'ino',
         'Arduino Language Server',
-        {
-            command,
-            args,
-            options: { env },
-        },
-        {
-            initializationOptions: {},
-            documentSelector: ['ino', 'c', 'cpp', 'h', 'hpp', 'pde'],
-            uriConverters: {
-                code2Protocol: (uri: vscode.Uri): string => (uri.scheme ? uri : uri.with({ scheme: 'file' })).toString(),
-                protocol2Code: (uri: string) => vscode.Uri.parse(uri)
-            },
-            revealOutputChannelOn: RevealOutputChannelOn.Never,
-            initializationFailedHandler: (error: WebRequest.ResponseError<InitializeError>): boolean => {
-                vscode.window.showErrorMessage(`The language server is not able to serve any features. Initialization failed: ${error}.`);
-                return false;
-            },
-            errorHandler: {
-                error: (error: Error, message: Message, count: number): ErrorAction => {
-                    vscode.window.showErrorMessage(`Error communicating with the language server: ${error}: ${message}.`);
-                    if (count < 5) {
-                        return ErrorAction.Continue;
-                    }
-                    return ErrorAction.Shutdown;
-                },
-                closed: (): CloseAction => {
-                    crashCount++;
-                    if (crashCount < 5) {
-                        return CloseAction.Restart;
-                    }
-                    return CloseAction.DoNotRestart;
-                }
-            }
-        }
+        serverOptions,
+        clientOptions
     );
 }
 
@@ -281,4 +287,16 @@ async function updateLaunchConfig(debugConfig: DebugConfig, launchConfig: object
         const configuration = vscode.workspace.getConfiguration();
         await configuration.update('launch', launchConfig, false);
     }
+}
+
+function noopOutputChannel(name: string): OutputChannel {
+    return {
+        append: () => {},
+        appendLine: () => {},
+        clear: () => {},
+        dispose: () => {},
+        hide: () => {},
+        show: () => {},
+        name
+    };
 }
