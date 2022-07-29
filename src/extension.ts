@@ -223,6 +223,7 @@ function findExecutables(): LanguageServerExecutables | undefined {
 
 interface CompileResult {
     readonly builder_result: { build_path: string };
+    readonly compiler_err?: string;
 }
 interface Platform {
     readonly boards: Board[];
@@ -337,10 +338,13 @@ export function activate(context: ExtensionContext) {
             }
             // save all dirt editor for the sketch
             await Promise.all(vscode.workspace.textDocuments.filter(document => getSketchPath(document.uri) === sketch).filter(document => document.isDirty).map(document => document.save()));
-            const raw = await cliExec(['compile', '-b', fqbn, sketch, '--format', 'json']);
+            const raw = await cliExec(['compile', '-b', fqbn, sketch, '--config-file', `"${cliConfigPath}"`,'--format', 'json']);
             const languageClient = sketchContext?.languageClient;
             if (languageClient) {
                 const result = JSON.parse(raw) as CompileResult;
+                if (result.compiler_err) {
+                    vscode.window.showErrorMessage(`Compilation failed: ${result.compiler_err}`);
+                }
                 const buildOutputUri = Uri.file(result.builder_result.build_path).toString();
                 languageClient.sendNotification(DidCompleteBuildNotification.TYPE, { buildOutputUri });
             }
@@ -374,7 +378,7 @@ async function selectFqbn(): Promise<string | undefined> {
     return undefined;
 }
 async function coreList(): Promise<Platform[]> {
-    const raw = await cliExec(['core', 'list', '--format', 'json']);
+    const raw = await cliExec(['core', 'list', '--config-file', `"${cliConfigPath}"`, '--format', 'json']);
     return JSON.parse(raw) as Platform[];
 }
 async function installedBoards(): Promise<(Board & { fqbn: string })[]> {
@@ -403,6 +407,16 @@ async function cliExec(args: string[] = []): Promise<string> {
                     console.log('cli exec OK with args: ' + JSON.stringify(args), raw);
                     return resolve(raw);
                 } else {
+                    const raw = Buffer.concat(out).toString('utf-8');
+                    let json: CompileResult | undefined;
+                    try {
+                        json = JSON.parse(raw) as CompileResult;
+                    } catch {}
+                    // TODO: this should not be here.
+                    // Quick workaround for https://github.com/arduino/arduino-ide/issues/714#issuecomment-1198304868.
+                    if (json && json.compiler_err) {
+                        return resolve(raw);
+                    }
                     const error = Buffer.concat(err).toString('utf-8');
                     console.error('cli exec err with args: ' + JSON.stringify(args), error);
                     return reject(error);
@@ -511,9 +525,10 @@ async function startLanguageServer(context: ExtensionContext, sketchContext: Ske
     return true;
 }
 
+const cliConfigPath = path.join(os.homedir(), '.arduinoIDE/arduino-cli.yaml');
 async function buildLanguageClient(config: LanguageServerConfig & LanguageServerExecutables, sketchContext: SketchContext): Promise<LanguageClient> {
     const { lsPath: command, clangdPath, board, flags, env, log } = config;
-    const args = ['-cli', config.cliPath, '-cli-config', path.join(os.homedir(), '.arduinoIDE/arduino-cli.yaml'), '-clangd', clangdPath, '-fqbn', board.fqbn ?? 'arduino:avr:uno', '-skip-libraries-discovery-on-rebuild'];
+    const args = ['-cli', config.cliPath, '-cli-config', cliConfigPath, '-clangd', clangdPath, '-fqbn', board.fqbn ?? 'arduino:avr:uno', '-skip-libraries-discovery-on-rebuild'];
     if (board.name) {
         args.push('-board-name', board.name);
     }
