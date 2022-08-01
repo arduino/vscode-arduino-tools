@@ -123,7 +123,7 @@ async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boo
     }
     if (!rawStdout) {
         if (rawStdErr) {
-            if (rawStdErr.indexOf('compiled sketch not found in') !== -1) {
+            if (rawStdErr.toLowerCase().indexOf('compiled sketch not found in') !== -1) {
                 vscode.window.showErrorMessage(`Sketch '${path.basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
             } else {
                 vscode.window.showErrorMessage(rawStdErr);
