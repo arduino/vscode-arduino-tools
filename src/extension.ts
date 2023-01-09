@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
 import deepmerge from 'deepmerge';
@@ -108,37 +108,45 @@ export function activate(context: ExtensionContext) {
     );
 }
 
+async function exec(command: string, args: string[]): Promise<{ stdout: string, stderr: string }> {
+    return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
+        let out = '';
+        let err = '';
+        const cp = spawn(command, args);
+        cp.stdout.on('data', data => out += data.toString());
+        cp.stderr.on('data', data => err += data.toString());
+        cp.on('error', reject);
+        cp.on('close', (code, signal) => {
+            const stdout = out.trim();
+            const stderr = err.trim();
+            if (code) {
+                reject(new Error(stderr ?? `Exit code: ${code}`));
+            }
+            if (signal) {
+                reject(new Error(stderr ?? `Exit signal: ${signal}`));
+            }
+            if (err.trim()) {
+                reject(new Error(stderr));
+            }
+            resolve({ stdout, stderr });
+        });
+    });
+}
+
 async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boolean> {
     let info: DebugInfo | undefined = undefined;
-    let rawStdout: string | undefined = undefined;
-    let rawStdErr: string | undefined = undefined;
     try {
         const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json'];
-        const { stdout, stderr } = spawnSync(config?.cliPath || '.', args, { encoding: 'utf8' });
-        rawStdout = stdout.trim();
-        rawStdErr = stderr.trim();
-    } catch (err) {
-        showError(err);
-        return false;
-    }
-    if (!rawStdout) {
-        if (rawStdErr) {
-            if (rawStdErr.toLowerCase().indexOf('compiled sketch not found in') !== -1) {
-                vscode.window.showErrorMessage(`Sketch '${path.basename(config.sketchPath)}' was not compiled. Please compile the sketch and start debugging again.`);
-            } else {
-                vscode.window.showErrorMessage(rawStdErr);
-            }
+        const { stdout, stderr } = await exec(config?.cliPath || '.', args);
+        if (!stdout && stderr) {
+            throw new Error(stderr);
         }
-        return false;
-    }
-    try {
-        info = JSON.parse(rawStdout);
+        info = JSON.parse(stdout);
+        if (!info) {
+            return false;
+        }
     } catch (err) {
-        console.error(`Could not parse JSON: <${rawStdout}>`);
-        showError(err);
-    }
-    if (!info) {
-        return false;
+        throw err;
     }
     const defaultDebugConfig = {
         cwd: '${workspaceRoot}',
@@ -268,12 +276,6 @@ async function buildLanguageClient(config: LanguageServerConfig): Promise<Langua
         serverOptions,
         clientOptions
     );
-}
-
-function showError(err: unknown): void {
-    console.error(err);
-    const message = err instanceof Error ? err.message : typeof err === 'string' ? err : String(err);
-    vscode.window.showErrorMessage(message);
 }
 
 /**
