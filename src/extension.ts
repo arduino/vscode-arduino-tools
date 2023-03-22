@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import { homedir } from 'os';
 import { spawn } from 'child_process';
 import deepEqual from 'deep-equal';
 import WebRequest from 'web-request';
@@ -44,6 +45,10 @@ interface DebugConfig {
      * If not defined, it falls back to `sketchPath/.vscode/launch.json`.
      */
     readonly configPath?: string;
+    /**
+     * Absolute path to the `arduino-cli.yaml` file. If  not specified, it falls back to `~/.arduinoIDE/arduino-cli.yaml`.
+     */
+    readonly cliConfigPath?: string;
 }
 
 interface DebugInfo {
@@ -133,10 +138,15 @@ async function exec(command: string, args: string[]): Promise<{ stdout: string, 
     });
 }
 
+function resolveCliConfigPath(config: DebugConfig): string {
+    return config.cliConfigPath ?? path.join(homedir(), '.arduinoIDE', 'arduino-cli.yaml');
+}
+
 async function startDebug(_: ExtensionContext, config: DebugConfig): Promise<boolean> {
+    const cliConfigPath = resolveCliConfigPath(config);
     let info: DebugInfo | undefined = undefined;
     try {
-        const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json'];
+        const args = ['debug', '-I', '-b', config.board.fqbn, config.sketchPath, '--format', 'json', '--config-file', cliConfigPath];
         const { stdout, stderr } = await exec(config?.cliPath || '.', args);
         if (!stdout && stderr) {
             throw new Error(stderr);
