@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
     "target": "es6",
-    "module": "commonjs",
-    "lib": [
-      "es2015"
-    ],
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "lib": ["es2015"],
     "sourceMap": true,
     "inlineSources": false,
     "declaration": true,
@@ -19,8 +18,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "exclude": [
-    "./node_modules",
-    "./lib/**/*"
-  ]
+  "exclude": ["./node_modules", "./lib/**/*"]
 }

@@ -1,5 +1,8 @@
+.DS_Store
 node_modules/
 lib/
 bin/
 dist/
-build-artifacts/
+# build-artifacts/
+.tests/
+.vscode-test

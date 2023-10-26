@@ -1,0 +1,865 @@
+{
+  "title": "cortex-debug Launch Attributes",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "properties": {
+    "servertype": {
+      "type": "string",
+      "description": "GDB Server type - supported types are jlink, openocd, pyocd, pe, stlink, stutil, qemu, bmp and external",
+      "enum": [
+        "jlink",
+        "openocd",
+        "pyocd",
+        "stutil",
+        "stlink",
+        "bmp",
+        "pe",
+        "qemu",
+        "external"
+      ]
+    },
+    "cwd": {
+      "description": "Directory to run commands from",
+      "type": "string"
+    },
+    "debuggerArgs": {
+      "default": [],
+      "description": "Additional arguments to pass to GDB command line",
+      "type": "array"
+    },
+    "preLaunchCommands": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional GDB Commands to be executed at the start of the main launch sequence (immediately after attaching to target)."
+    },
+    "postLaunchCommands": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional GDB Commands to be executed after the main launch sequence has finished."
+    },
+    "preRestartCommands": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional GDB Commands to be executed at the beginning of the restart sequence (after interrupting execution)."
+    },
+    "postRestartCommands": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional GDB Commands to be executed at the end of the restart sequence."
+    },
+    "overrideLaunchCommands": {
+      "default": null,
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "You can use this to property to override the commands that are normally executed as part of flashing and launching the target. In most cases it is preferable to use preLaunchCommands and postLaunchCommands to customize the GDB launch sequence."
+    },
+    "overrideRestartCommands": {
+      "default": null,
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "You can use this to property to override the commands that are normally executed as part of restarting the target. In most cases it is preferable to use preRestartCommands and postRestartCommands to customize the GDB restart sequence."
+    },
+    "postStartSessionCommands": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional GDB Commands to be executed at the end of the start sequence, after a debug session has already started and runToEntryPoint is not specified."
+    },
+    "postRestartSessionCommands": {
+      "default": [],
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional GDB Commands to be executed at the end of the re-start sequence, after a debug session has already started."
+    },
+    "overrideGDBServerStartedRegex": {
+      "description": "You can supply a regular expression (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions) in the configuration property to override the output from the GDB Server that is looked for to determine if the GDB Server has started. Under most circumstances this will not be necessary - but could be needed as a result of a change in the output of a GDB Server making it incompatible with cortex-debug. This property has no effect for bmp or external GDB Server types.",
+      "type": "string",
+      "default": null
+    },
+    "cpu": {
+      "default": "cortex-m3",
+      "type": "string",
+      "description": "CPU Type Selection - used for QEMU server type",
+      "enum": ["cortex-m3", "cortex-m4"]
+    },
+    "machine": {
+      "default": "lm3s811evb",
+      "type": "string",
+      "description": "Machine Type Selection - used for QEMU server type",
+      "enum": ["lm3s811evb", "lm3s6965evb"]
+    },
+    "device": {
+      "default": "",
+      "description": "Target Device Identifier",
+      "type": "string"
+    },
+    "rtos": {
+      "default": null,
+      "description": "RTOS being used. For JLink this can be Azure, ChibiOS, embOS, FreeRTOS, NuttX, Zephyr or the path to a custom JLink RTOS Plugin library. For OpenOCD this can be ChibiOS, eCos, embKernel, FreeRTOS, mqx, nuttx, ThreadX, uCOS-III, or auto.",
+      "type": "string"
+    },
+    "armToolchainPath": {
+      "default": null,
+      "description": "This setting can be used to override the armToolchainPath user setting for a particular launch configuration. This should be the path where arm-none-eabi-gdb, arm-none-eabi-objdump and arm-none-eabi-nm are located.",
+      "type": "string"
+    },
+    "toolchainPrefix": {
+      "default": null,
+      "description": "This setting can be used to override the toolchainPrefix user setting for a particular launch configuration.",
+      "type": "string"
+    },
+    "serverpath": {
+      "default": null,
+      "description": "This setting can be used to override the GDB Server path user/workspace setting for a particular launch configuration. It is the full pathname to the executable or name of executable if it is in your PATH",
+      "type": "string"
+    },
+    "gdbPath": {
+      "default": null,
+      "description": "This setting can be used to override the GDB path user/workspace setting for a particular launch configuration. This should be the full pathname to the executable (or name of the executable if it is in your PATH). Note that other toolchain executables with the configured prefix must still be available.",
+      "type": "string"
+    },
+    "objdumpPath": {
+      "default": null,
+      "description": "This setting can be used to override the objdump (used to find globals/statics) path user/workspace setting for a particular launch configuration. This should be the full pathname to the executable (or name of the executable if it is in your PATH). Note that other toolchain executables with the configured prefix must still be available. The program 'nm' is also expected alongside",
+      "type": "string"
+    },
+    "serverArgs": {
+      "default": [],
+      "description": "Additional arguments to pass to GDB Server command line",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "executable": {
+      "description": "Path of executable for symbols and program information. See also `loadFiles`, `symbolFiles`",
+      "type": "string"
+    },
+    "loadFiles": {
+      "description": "List of files (hex/bin/elf files) to load/program instead of the executable file. Symbols are not loaded (see `symbolFiles`). Can be an empty list to specify none. If this property does not exist, then the executable is used to program the device",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": null
+    },
+    "symbolFiles": {
+      "description": "List of ELF files to load symbols from instead of the executable file. Program information is ignored (see `loadFiles`). Can be an empty list to specify none. If this property does not exist, then the executable is used for symbols",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Pathname of an ELF file for symbols"
+          },
+          "offset": {
+            "type": ["number", "string"],
+            "description": "Optional offset to apply to all sections of the ELF file. Use a string strarting with '0x' for a hexadecimal number"
+          },
+          "textaddress": {
+            "type": ["number", "string"],
+            "description": "Optional: Load the TEXT section at the specified 'textaddress'. Use a string strarting with '0x' for a hexadecimal number"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string", "description": "Section name" },
+                "address": {
+                  "type": ["number", "string"],
+                  "description": "Base address for section. Use a string strarting with '0x' for a hexadecimal number"
+                }
+              },
+              "required": ["name", "address"]
+            }
+          }
+        },
+        "required": ["file"]
+      },
+      "default": null
+    },
+    "gdbTarget": {
+      "default": null,
+      "description": "For externally controlled GDB Servers you must specify the GDB target to connect to. This can either be a \"hostname:port\" combination or path to a serial port",
+      "type": "string"
+    },
+    "runToMain": {
+      "description": "Deprecated: please use 'runToEntryPoint' instead.",
+      "type": "boolean",
+      "default": false
+    },
+    "breakAfterReset": {
+      "default": false,
+      "type": "boolean",
+      "description": "Applies to Restart/Reset/Launch, halt debugger after a reset. Ignored if `runToEntryPoint` is used."
+    },
+    "runToEntryPoint": {
+      "description": "Applies to Launch/Restart/Reset, ignored for Attach. If enabled the debugger will run until the start of the given function.",
+      "type": "string",
+      "default": "main"
+    },
+    "numberOfProcessors": {
+      "description": "Number of processors/cores in the target device.",
+      "type": "number",
+      "multipleOf": 1,
+      "minimum": 1,
+      "maximum": 10,
+      "default": 1
+    },
+    "targetProcessor": {
+      "description": "The processor you want to debug. Zero based integer index. Must be less than 'numberOfProcessors'",
+      "type": "number",
+      "multipleOf": 1,
+      "minimum": 0,
+      "maximum": 9,
+      "default": 0
+    },
+    "chainedConfigurations": {
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Enable/Disable entire set of chained configurations",
+          "type": "boolean"
+        },
+        "detached": {
+          "default": false,
+          "description": "Related or independent server sessions. Set to true for servers like 'JLink'. Inherited by children",
+          "type": "boolean"
+        },
+        "lifecycleManagedByParent": {
+          "default": true,
+          "description": "Are Restart/Reset/Stop/Disconnect shared? All life-cycle management done as a group by parent/root. Inherited by children",
+          "type": "boolean"
+        },
+        "waitOnEvent": {
+          "enum": ["postStart", "postInit"],
+          "default": "postInit",
+          "description": "Event to wait for. 'postStart' means wait for gdb-server connecting, 'postInit' is after init commands are completed by gdb. Inherited by children",
+          "type": "string"
+        },
+        "delayMs": {
+          "type": "number",
+          "description": "Default delay in milliseconds for a certain amount of milliseconds to begin launch. Inherited by children",
+          "multipleOf": 1,
+          "minimum": 0,
+          "default": 5
+        },
+        "overrides": {
+          "default": {},
+          "description": "Values to override/set in this child configuration. A set of name/value pairs. Set value to 'null' (no quotes) to delete. Sorry, no IntelliSense",
+          "type": "object"
+        },
+        "inherits": {
+          "default": [],
+          "description": "List of properties to inherit from parent. Sorry, no IntelliSense",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "launches": {
+          "type": "array",
+          "items": {
+            "properties": {
+              "name": {
+                "default": "",
+                "description": "Name of launch configuration. Sorry, no IntelliSense",
+                "type": "string"
+              },
+              "folder": {
+                "default": "",
+                "description": "Folder to use for this configuration. Where .vscode/launch.json exists. Default is same folder as parent. Use either the full path name or the base-name of the folder",
+                "type": "string"
+              },
+              "enabled": {
+                "default": true,
+                "description": "Enable/Disable this configuration",
+                "type": "boolean"
+              },
+              "detached": {
+                "default": false,
+                "description": "Related or independent server sessions. Set to true for servers like 'JLink'",
+                "type": "boolean"
+              },
+              "waitOnEvent": {
+                "enum": ["postStart", "postInit"],
+                "default": "postInit",
+                "description": "Wait for an event. 'postStart' means wait for gdb-server connecting, 'postInit' is after init commands are completed by gdb",
+                "type": "string"
+              },
+              "delayMs": {
+                "type": "number",
+                "description": "Delay in milliseconds for a certain amount of milliseconds to begin launch",
+                "multipleOf": 1,
+                "minimum": 0,
+                "default": 5
+              },
+              "lifecycleManagedByParent": {
+                "default": true,
+                "description": "Are Restart/Reset/Stop/Disconnect shared? All life-cycle management done as a group by parent/root",
+                "type": "boolean"
+              },
+              "overrides": {
+                "default": {},
+                "description": "Values to override/set in this child configuration. A set of name/value pairs. Set value to 'null' (no quotes) to delete. Sorry, no IntelliSense",
+                "type": "object"
+              },
+              "inherits": {
+                "default": [],
+                "description": "List of properties to inherit from parent. Sorry, no IntelliSense",
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "default": {
+        "enabled": true,
+        "waitOnEvent": "postInit",
+        "lifeCycleShared": true,
+        "launches": [
+          {
+            "name": "use EXACT name of chained configuration to launch",
+            "folder": "use full path or folder basename or leave empty"
+          }
+        ]
+      }
+    },
+    "graphConfig": {
+      "items": {
+        "oneOf": [
+          {
+            "properties": {
+              "annotate": {
+                "default": true,
+                "description": "Create annotations on the graph for when the target processor starts and stops execution. (green line for starting execution, red line for stopping execution).",
+                "type": "boolean"
+              },
+              "label": { "description": "Label for Graph", "type": "string" },
+              "maximum": {
+                "default": 65535,
+                "description": "Maximum value for the X-Axis",
+                "type": "number"
+              },
+              "minimum": {
+                "default": 0,
+                "description": "Minimum value for the Y-Axis",
+                "type": "number"
+              },
+              "plots": {
+                "description": "Plot configurations. Data sources must be configured for \"graph\" (or \"advanced\" with a decoder that sends graph data) in the \"swoConfig\" section",
+                "items": {
+                  "properties": {
+                    "color": {
+                      "pattern": "^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$",
+                      "type": "string"
+                    },
+                    "graphId": {
+                      "description": "Graph Data Source Id for the plot.",
+                      "type": "string"
+                    },
+                    "label": {
+                      "description": "A label for this data set",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["graphId"],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "timespan": {
+                "default": 30,
+                "description": "Length of time (seconds) to be plotted on screen.",
+                "type": "number"
+              },
+              "type": { "enum": ["realtime"], "type": "string" }
+            },
+            "required": ["label", "plots", "minimum", "maximum"],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "label": { "description": "Label for graph", "type": "string" },
+              "timespan": {
+                "default": 10,
+                "description": "The amount of time (seconds) that the XY Plot will show the trace for.",
+                "type": "number"
+              },
+              "type": { "enum": ["x-y-plot"], "type": "string" },
+              "xGraphId": {
+                "description": "Graph Data Source Id for the X axis",
+                "type": "string"
+              },
+              "xMaximum": {
+                "default": 65535,
+                "description": "Maximum value on the X-Axis",
+                "type": "number"
+              },
+              "xMinimum": {
+                "default": 0,
+                "description": "Minimum value on the X-Axis",
+                "type": "number"
+              },
+              "yGraphId": {
+                "description": "Graph Data Source Id Port for the Y axis",
+                "type": "string"
+              },
+              "yMaximum": {
+                "default": 65535,
+                "description": "Maximum value on the Y-Axis",
+                "type": "number"
+              },
+              "yMinimum": {
+                "default": 0,
+                "description": "Minimum value on the Y-Axis",
+                "type": "number"
+              }
+            },
+            "required": ["xGraphId", "yGraphId", "label"],
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "showDevDebugOutput": {
+      "enum": ["none", "parsed", "raw", "both", "vscode"],
+      "default": "none",
+      "description": "Used to debug this extension. Prints all GDB responses to the console. 'raw' prints gdb responses, 'parsed' prints results after parsing, 'both' prints both. 'vscode' shows raw and VSCode interactions",
+      "type": "string"
+    },
+    "showDevDebugTimestamps": {
+      "default": false,
+      "description": "Show timestamps when 'showDevDebugOutput' is enabled",
+      "type": "boolean"
+    },
+    "svdFile": {
+      "default": null,
+      "description": "Path to a CMSIS SVD file describing the peripherals of the microcontroller; if not supplied then one may be selected based upon the 'device' entered.",
+      "type": "string"
+    },
+    "svdAddrGapThreshold": {
+      "default": 16,
+      "type": "number",
+      "multipleOf": 1,
+      "minimum": -1,
+      "maximum": 32,
+      "description": "If the gap between registers is less than this threshold (multiple of 8), combine into a single read from device. -1 means never combine registers and is very slow"
+    },
+    "rttConfig": {
+      "type": "object",
+      "description": "SEGGER's Real Time Trace (RTT) and supported by JLink, OpenOCD and perhaps others in the future",
+      "default": {
+        "enabled": true,
+        "address": "auto",
+        "decoders": [{ "label": "", "port": 0, "type": "console" }]
+      },
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/Disable RTT",
+          "default": false
+        },
+        "address": {
+          "type": "string",
+          "description": "Address to start searching for the RTT control block. Use \"auto\" for Cortex-Debug to use the address from elf file",
+          "default": "auto"
+        },
+        "searchSize": {
+          "type": "number",
+          "description": "Number of bytes to search for the RTT control block. If 'address' is 'auto', use ONLY if you have a custom RTT implementation",
+          "multipleOf": 1,
+          "minimum": 16,
+          "default": 16
+        },
+        "searchId": {
+          "type": "string",
+          "description": "A string to search for to find the RTT control block. If 'address' is 'auto', use ONLY if you have a custom RTT implementation",
+          "default": "SEGGER RTT"
+        },
+        "polling_interval": {
+          "type": "number",
+          "description": "number of milliseconds (> 0) to wait for check for data on out channels",
+          "default": 0,
+          "minimum": 1
+        },
+        "clearSearch": {
+          "type": "boolean",
+          "description": "When true, clears the search-string. Only applicable when address is \"auto\"",
+          "default": true
+        },
+        "decoders": {
+          "description": "SWO Decoder Configuration",
+          "items": {
+            "anyOf": [
+              {
+                "properties": {
+                  "label": {
+                    "description": "A label for RTT Console",
+                    "type": "string"
+                  },
+                  "port": {
+                    "description": "RTT Channel Number (0 to 15)",
+                    "default": 0,
+                    "maximum": 15,
+                    "minimum": 0,
+                    "multipleOf": 1,
+                    "type": "number"
+                  },
+                  "type": {
+                    "enum": ["console", "binary"],
+                    "default": "console",
+                    "description": "'console' with text input/output, 'binary' is for converting byte stream to other data types",
+                    "type": "string"
+                  },
+                  "prompt": {
+                    "description": "Prompt to use for RTT Console",
+                    "type": "string",
+                    "default": ""
+                  },
+                  "noprompt": {
+                    "description": "Don't use a prompt for RTT Console",
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "noclear": {
+                    "description": "append to screen/logfile when another connection is made",
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "logfile": {
+                    "description": "log all raw data (input and output) to specified file",
+                    "type": "string",
+                    "default": ""
+                  },
+                  "timestamp": {
+                    "description": "Add timestamps while printing for 'console' type. 'binary' type always prints timestamps",
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "encoding": {
+                    "type": "string",
+                    "description": "How binary data bytes are converted into a number. All little-endian",
+                    "default": "unsigned",
+                    "enum": ["unsigned", "signed", "Q16.16", "float"]
+                  },
+                  "iencoding": {
+                    "type": "string",
+                    "description": "How keyoard input is encoded Cooked mode only",
+                    "default": "utf8",
+                    "enum": ["ascii", "utf8", "ucs2", "utf16le"]
+                  },
+                  "scale": {
+                    "default": 1,
+                    "description": "Binary only: This setting will scale the raw value from the ITM port by the specified value. Can be used, for example, to scale a raw n-bit ADC reading to a voltage value. (e.g to scale a 12-bit ADC reading to a 3.3v scale you would need a scale value of 3.3/4096 = 0.0008056640625",
+                    "type": "number"
+                  },
+                  "inputmode": {
+                    "type": "string",
+                    "description": "Experimental: 'disabled' means no stdin. 'raw' and 'rawecho' sends chars as they are typed.\n'rawecho' will echo chars and process RETURN keys. Even CTRL-C CTRL-D are passed on",
+                    "default": "cooked",
+                    "enum": ["cooked", "raw", "rawecho", "disabled"]
+                  }
+                },
+                "required": ["port"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "encoding": {
+                    "default": "unsigned",
+                    "description": "This property is only used for binary and graph output formats.",
+                    "enum": ["unsigned", "signed", "Q16.16", "float"],
+                    "type": "string"
+                  },
+                  "graphId": {
+                    "description": "The identifier to use for this data in graph configurations.",
+                    "type": "string"
+                  },
+                  "port": {
+                    "description": "RTT Channel Number",
+                    "maximum": 15,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "scale": {
+                    "default": 1,
+                    "description": "This setting will scale the raw value from the ITM port by the specified value. Can be used, for example, to scale a raw n-bit ADC reading to a voltage value. (e.g to scale a 12-bit ADC reading to a 3.3v scale you would need a scale value of 3.3/4096 = 0.0008056640625",
+                    "type": "number"
+                  },
+                  "type": { "enum": ["graph"], "type": "string" }
+                },
+                "required": ["port", "graphId"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "config": { "additionalProperties": true, "type": "object" },
+                  "decoder": {
+                    "description": "Path to a javascript module to implement the decoding functionality.",
+                    "type": "string"
+                  },
+                  "ports": {
+                    "description": "RTT Channel Numbers",
+                    "type": "array",
+                    "items": { "type": "number", "maximum": 15, "minimum": 0 }
+                  },
+                  "type": { "enum": ["advanced"], "type": "string" }
+                },
+                "required": ["ports", "decoder"],
+                "type": "object"
+              }
+            ]
+          },
+          "type": "array"
+        }
+      }
+    },
+    "swoConfig": {
+      "properties": {
+        "cpuFrequency": {
+          "default": 0,
+          "description": "Target CPU frequency in Hz.",
+          "type": "number"
+        },
+        "enabled": {
+          "default": false,
+          "description": "Enable SWO decoding.",
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["probe", "socket", "serial", "file"],
+          "default": "probe",
+          "description": "Source for SWO data. Can either be \"probe\" to get directly from debug probe, or a serial port device to use a serial port external to the debug probe."
+        },
+        "swoPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path name when source is \"file\" or \"serial\". Typically a /path-name or a serial-port-name"
+        },
+        "swoPort": {
+          "type": "string",
+          "default": "",
+          "description": "When server is \"external\" && source is \"socket\", port to connect to. Format [host:]port"
+        },
+        "decoders": {
+          "description": "SWO Decoder Configuration",
+          "items": {
+            "anyOf": [
+              {
+                "properties": {
+                  "label": {
+                    "description": "A label for the output window.",
+                    "type": "string"
+                  },
+                  "port": {
+                    "description": "ITM Port Number",
+                    "maximum": 31,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "showOnStartup": {
+                    "description": "If true, switches to this output when starting a debug session.",
+                    "type": "boolean"
+                  },
+                  "timestamp": {
+                    "description": "Add timestamps while printing",
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "type": { "enum": ["console"], "type": "string" },
+                  "encoding": {
+                    "type": "string",
+                    "default": "utf8",
+                    "enum": ["ascii", "utf8", "ucs2", "utf16le"]
+                  },
+                  "logfile": {
+                    "description": "log all raw data to specified file",
+                    "type": "string",
+                    "default": ""
+                  }
+                },
+                "required": ["port"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "encoding": {
+                    "default": "unsigned",
+                    "description": "This property is only used for binary and graph output formats.",
+                    "enum": ["unsigned", "signed", "Q16.16", "float"],
+                    "type": "string"
+                  },
+                  "label": {
+                    "description": "A label for the output window.",
+                    "type": "string"
+                  },
+                  "port": {
+                    "description": "ITM Port Number",
+                    "maximum": 31,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "scale": {
+                    "default": 1,
+                    "description": "This setting will scale the raw value from the ITM port by the specified value. Can be used, for example, to scale a raw n-bit ADC reading to a voltage value. (e.g to scale a 12-bit ADC reading to a 3.3v scale you would need a scale value of 3.3/4096 = 0.0008056640625",
+                    "type": "number"
+                  },
+                  "type": { "enum": ["binary"], "type": "string" },
+                  "logfile": {
+                    "description": "log all raw data to specified file",
+                    "type": "string",
+                    "default": ""
+                  }
+                },
+                "required": ["port"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "encoding": {
+                    "default": "unsigned",
+                    "description": "This property is only used for binary and graph output formats.",
+                    "enum": ["unsigned", "signed", "Q16.16", "float"],
+                    "type": "string"
+                  },
+                  "graphId": {
+                    "description": "The identifier to use for this data in graph configurations.",
+                    "type": "string"
+                  },
+                  "port": {
+                    "description": "ITM Port Number",
+                    "maximum": 31,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "scale": {
+                    "default": 1,
+                    "description": "This setting will scale the raw value from the ITM port by the specified value. Can be used, for example, to scale a raw n-bit ADC reading to a voltage value. (e.g to scale a 12-bit ADC reading to a 3.3v scale you would need a scale value of 3.3/4096 = 0.0008056640625",
+                    "type": "number"
+                  },
+                  "type": { "enum": ["graph"], "type": "string" },
+                  "logfile": {
+                    "description": "log all raw data to specified file",
+                    "type": "string",
+                    "default": ""
+                  }
+                },
+                "required": ["port", "graphId"],
+                "type": "object"
+              },
+              {
+                "properties": {
+                  "config": { "additionalProperties": true, "type": "object" },
+                  "decoder": {
+                    "description": "Path to a javascript module to implement the decoding functionality.",
+                    "type": "string"
+                  },
+                  "ports": {
+                    "description": "ITM Port Numbers",
+                    "type": "array",
+                    "items": { "type": "number", "maximum": 31, "minimum": 0 }
+                  },
+                  "type": { "enum": ["advanced"], "type": "string" }
+                },
+                "required": ["ports", "decoder"],
+                "type": "object"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "swoFrequency": {
+          "default": 0,
+          "description": "SWO frequency in Hz.",
+          "type": "number"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "ipAddress": {
+      "default": null,
+      "description": "IP Address for networked J-Link Adapter",
+      "pattern": "^(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$",
+      "type": "string"
+    },
+    "serialNumber": {
+      "default": null,
+      "description": "J-Link or ST-LINK Serial Number - only needed if multiple J-Links/ST-LINKs are connected to the computer",
+      "type": "string"
+    },
+    "interface": {
+      "default": "swd",
+      "description": "Debug Interface type to use for connections (defaults to SWD) - Used for J-Link, ST-LINK and BMP probes.",
+      "type": "string",
+      "enum": ["swd", "jtag", "cjtag"]
+    },
+    "jlinkscript": {
+      "default": null,
+      "description": "J-Link script file - optional input file for customizing J-Link actions.",
+      "type": "string"
+    },
+    "openOCDLaunchCommands": {
+      "default": [],
+      "description": "OpenOCD command(s) after configuration files are loaded (-c options)",
+      "items": { "type": "string" },
+      "type": "array"
+    },
+    "openOCDPreConfigLaunchCommands": {
+      "default": [],
+      "description": "OpenOCD command(s) before configuration files are loaded (-c options)",
+      "items": { "type": "string" },
+      "type": "array"
+    },
+    "configFiles": {
+      "description": "OpenOCD/PE GDB Server configuration file(s) to use when debugging (OpenOCD -f option)",
+      "items": { "type": "string" },
+      "type": "array"
+    },
+    "searchDir": {
+      "default": [],
+      "description": "OpenOCD directories to search for config files and scripts (-s option). If no search directories are specified, it defaults to the configured cwd.",
+      "items": { "type": "string" },
+      "type": "array"
+    },
+    "v1": {
+      "default": false,
+      "description": "For st-util only. Set this to true if your debug probe is a ST-Link V1 (for example, the ST-Link on the STM32 VL Discovery is a V1 device). When set to false a ST-Link V2 device is used.",
+      "type": "boolean"
+    },
+    "stlinkPath": {
+      "default": null,
+      "description": "Path to the ST-LINK_gdbserver executable. If not set then ST-LINK_gdbserver (ST-LINK_gdbserver.exe on Windows) must be on the system path.",
+      "type": "string"
+    },
+    "stm32cubeprogrammer": {
+      "default": null,
+      "description": "This path is normally resolved to the installed STM32CubeIDE or STM32CubeProgrammer but can be overridden here.",
+      "type": "string"
+    },
+    "targetId": {
+      "description": "On BMP this is the ID number that should be passed to the attach command (defaults to 1); for PyOCD this is the target identifier (only needed for custom hardware)",
+      "anyOf": [{ "type": "string" }, { "type": "number", "minimum": 1 }]
+    },
+    "boardId": {
+      "description": "PyOCD Board Identifier. Needed if multiple compatible boards are connected.",
+      "type": "string"
+    },
+    "cmsisPack": {
+      "description": "Path to a CMSIS-Pack file. Use to add extra device support.",
+      "type": "string"
+    },
+    "BMPGDBSerialPort": {
+      "type": "string",
+      "description": "The serial port for the Black Magic Probe GDB Server. On Windows this will be \"COM<num>\", on Linux this will be something similar to /dev/ttyACM0, on OS X something like /dev/cu.usbmodemE2C0C4C6 (do not use tty versions on OS X)"
+    },
+    "powerOverBMP": {
+      "type": "string",
+      "description": "Power up the board over Black Magic Probe. \"powerOverBMP\" : \"enable\" or \"powerOverBMP\" : \"disable\". If not set it will use the last power state."
+    }
+  },
+  "required": ["executable"]
+}
