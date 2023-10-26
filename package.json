@@ -1,83 +1,123 @@
 {
-  "name": "vscode-arduino-tools",
   "private": true,
-  "version": "0.0.2-beta.8",
-  "publisher": "arduino",
+  "name": "vscode-arduino-tools",
+  "version": "0.1.0",
+  "description": "Arduino Tools extension for VS Code",
   "license": "Apache-2.0",
   "author": "Arduino SA",
-  "description": "Arduino Tools extension for VS Code",
-  "main": "./dist/bundle",
-  "engines": {
-    "vscode": "^1.46.0"
-  },
-  "scripts": {
-    "prepare": "yarn clean && yarn compile && yarn lint && yarn webpack && yarn package",
-    "clean": "rimraf ./lib ./dist ./build-artifacts",
-    "compile": "tsc -p ./",
-    "lint": "eslint src --ext ts",
-    "watch": "tsc -w -p ./",
-    "webpack": "webpack --config ./configs/webpack.config.js",
-    "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts"
-  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/arduino/vscode-arduino-language-server"
+    "url": "https://github.com/arduino/vscode-arduino-tools"
   },
   "bugs": {
-    "url": "https://github.com/arduino/vscode-arduino-language-server/issues"
+    "url": "https://github.com/arduino/vscode-arduino-tools/issues"
   },
-  "devDependencies": {
-    "@types/node": "^10.14.9",
-    "@types/vscode": "^1.41.0",
-    "@typescript-eslint/eslint-plugin": "^4.8.0",
-    "@typescript-eslint/parser": "^4.8.0",
-    "copy-webpack-plugin": "^6.1.0",
-    "eslint": "^7.9.0",
-    "mkdirp": "^1.0.4",
-    "rimraf": "^3.0.2",
-    "typescript": "^3.8.3",
-    "vsce": "^1.66.0",
-    "vscode": "^1.1.33",
-    "webpack": "^4.39.1",
-    "webpack-cli": "^3.3.6",
-    "webpack-permissions-plugin": "^1.0.7"
+  "main": "./dist/extension.js",
+  "files": [
+    "languages",
+    "lib",
+    "src",
+    "syntaxes"
+  ],
+  "scripts": {
+    "clean": "rimraf ./lib ./dist ./build-artifacts",
+    "compile": "tsc -p ./",
+    "compile-tests": "tsc -p . --outDir lib",
+    "format": "prettier --write . && prettier-package-json --write ./package.json",
+    "generate": "node ./scripts/generate.js 1.5.1",
+    "postinstall": "node ./scripts/cli 0.35.0-rc.7",
+    "lint": "eslint src --ext ts",
+    "prepackage": "yarn clean && yarn compile && yarn lint && yarn webpack",
+    "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts",
+    "pretest": "yarn compile-tests && yarn compile && yarn lint",
+    "test": "node ./lib/test/runTest.js",
+    "pretest-all": "yarn pretest",
+    "test-all": "node ./lib/test/runTest.js --all",
+    "pretest-slow": "yarn pretest",
+    "test-slow": "node ./lib/test/runTest.js --slow",
+    "watch": "webpack --watch",
+    "watch-tests": "tsc -p . -w --outDir lib",
+    "webpack": "webpack --config ./configs/webpack.config.js --mode production"
+  },
+  "resolutions": {
+    "unset-value/isobject": "^3.0.1"
   },
   "dependencies": {
+    "async-mutex": "^0.4.0",
+    "camelcase-keys": "^9.1.2",
+    "deep-equal": "^2.2.2",
+    "deepmerge": "^4.3.1",
+    "execa": "^8.0.1",
+    "fqbn": "^1.0.3",
+    "get-value": "^3.0.1",
+    "set-value": "^4.0.2",
+    "unset-value": "^2.0.1",
+    "vscode-languageclient": "^6.1.3"
+  },
+  "devDependencies": {
+    "@types/decompress": "^4.2.6",
     "@types/deep-equal": "^1.0.1",
-    "async-mutex": "^0.3.0",
-    "deep-equal": "^2.0.3",
-    "deepmerge": "^4.2.2",
-    "path": "^0.12.7",
-    "vscode-languageclient": "^6.1.3",
-    "web-request": "^1.0.7"
+    "@types/get-value": "^3.0.5",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^18.17.0",
+    "@types/set-value": "^4.0.2",
+    "@types/temp": "^0.9.3",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "@vscode/test-electron": "^2.3.6",
+    "@vscode/vsce": "^2.22.0",
+    "ardunno-cli": "^0.1.7",
+    "copy-webpack-plugin": "^11.0.0",
+    "decompress": "^4.2.1",
+    "decompress-targz": "^4.1.1",
+    "decompress-unzip": "^4.0.1",
+    "eslint": "^8.39.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "glob": "^10.3.10",
+    "json-schema": "^0.4.0",
+    "json-schema-to-typescript": "^13.1.1",
+    "mkdirp": "^3.0.1",
+    "mocha": "^10.2.0",
+    "prettier": "^2.3.1",
+    "prettier-package-json": "^2.8.0",
+    "rimraf": "^5.0.5",
+    "temp": "^0.9.4",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^4.7.0",
+    "webpack-permissions-plugin": "^1.0.9"
   },
   "keywords": [
+    "IntelliSense",
     "arduino",
-    "iot",
     "ino",
-    "IntelliSense"
+    "iot"
   ],
-  "files": [
-    "src",
-    "lib",
-    "syntaxes",
-    "languages"
-  ],
-  "categories": [
-    "Programming Languages",
-    "Formatters",
-    "Debuggers"
-  ],
-  "galleryBanner": {
-    "color": "#005c5f",
-    "theme": "light"
+  "engines": {
+    "node": ">=18.17.0 <21",
+    "vscode": "^1.80.0"
+  },
+  "//": {
+    "resolutions": [
+      "See https://github.com/jonschlinkert/unset-value/issues/13 why unset-value/isobject has a resolution"
+    ]
   },
   "activationEvents": [
     "onLanguage:ino",
     "onCommand:arduino.debug.start",
+    "onCommand:arduino.debug.createLaunchConfig",
     "onCommand:arduino.languageserver.start",
     "onCommand:arduino.languageserver.stop",
-    "onCommand:arduino.languageserver.restart"
+    "onCommand:arduino.languageserver.restart",
+    "onCommand:arduino.languageserver.notifyBuildDidComplete"
+  ],
+  "categories": [
+    "Programming Languages",
+    "Debuggers"
   ],
   "contributes": {
     "languages": [
@@ -92,11 +132,19 @@
           ".ino",
           ".c",
           ".cpp",
+          "cc",
+          "cxx",
           ".h",
           ".hpp",
           ".pde"
         ],
         "configuration": "./languages/ino.language-configuration.json"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "debug_custom.json",
+        "url": "./schemas/debug-custom.json"
       }
     ],
     "grammars": [
@@ -131,7 +179,18 @@
         "command": "arduino.debug.start",
         "title": "Start Debug",
         "category": "Arduino"
+      },
+      {
+        "command": "arduino.debug.createLaunchConfig",
+        "title": "Create Launch Configuration",
+        "category": "Arduino"
       }
     ]
-  }
+  },
+  "displayName": "VS Code Arduino Tools",
+  "galleryBanner": {
+    "color": "#005c5f",
+    "theme": "light"
+  },
+  "publisher": "arduino"
 }

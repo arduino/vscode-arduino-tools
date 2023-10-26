@@ -8,3 +8,6 @@ yarn.lock
 .github/
 .vscode/
 yarn.lock
+scripts/
+.vscode-test/
+.tests/

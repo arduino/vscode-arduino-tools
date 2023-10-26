@@ -5,19 +5,40 @@ on:
     branches:
       - main
 
+env:
+  # See: https://github.com/actions/setup-node/#readme
+  NODE_VERSION: '18.17'
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install Node.js 12.x
-        uses: actions/setup-node@v1
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "12.x"
-          registry-url: "https://registry.npmjs.org"
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'yarn'
 
-      - name: Build VS Code Extension
-        run: |
-          yarn
+      - name: Install dependencies
+        run: yarn
+      # Fails if the generated schema is not under version control
+      - name: Check schema
+        run: yarn generate && git status -s && git diff --exit-code
+      # Linux tests need a DISPLAY
+      - name: Test
+        if: runner.os == 'Linux'
+        run: xvfb-run yarn test-all
+      - name: Test
+        if: runner.os != 'Linux'
+        run: yarn test-all
+      - name: Package
+        run: yarn package

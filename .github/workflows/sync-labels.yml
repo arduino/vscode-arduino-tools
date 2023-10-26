@@ -5,15 +5,15 @@ name: Sync Labels
 on:
   push:
     paths:
-      - ".github/workflows/sync-labels.ya?ml"
-      - ".github/label-configuration-files/*.ya?ml"
+      - '.github/workflows/sync-labels.ya?ml'
+      - '.github/label-configuration-files/*.ya?ml'
   pull_request:
     paths:
-      - ".github/workflows/sync-labels.ya?ml"
-      - ".github/label-configuration-files/*.ya?ml"
+      - '.github/workflows/sync-labels.ya?ml'
+      - '.github/label-configuration-files/*.ya?ml'
   schedule:
     # Run daily at 8 AM UTC to sync with changes to shared label configurations.
-    - cron: "0 8 * * *"
+    - cron: '0 8 * * *'
   workflow_dispatch:
   repository_dispatch:
 
@@ -27,11 +27,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Download JSON schema for labels configuration file
         id: download-schema
-        uses: carlosperate/download-file-action@v1
+        uses: carlosperate/download-file-action@v2
         with:
           file-url: https://raw.githubusercontent.com/arduino/tooling-project-assets/main/workflow-templates/assets/sync-labels/arduino-tooling-gh-label-configuration-schema.json
           location: ${{ runner.temp }}/label-configuration-schema
@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Download
-        uses: carlosperate/download-file-action@v1
+        uses: carlosperate/download-file-action@v2
         with:
           file-url: https://raw.githubusercontent.com/arduino/tooling-project-assets/main/workflow-templates/assets/sync-labels/${{ matrix.filename }}
 
@@ -106,16 +106,16 @@ jobs:
           echo "::set-output name=flag::--dry-run"
 
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Download configuration files artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ${{ env.CONFIGURATIONS_ARTIFACT }}
           path: ${{ env.CONFIGURATIONS_FOLDER }}
 
       - name: Remove unneeded artifact
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v2
         with:
           name: ${{ env.CONFIGURATIONS_ARTIFACT }}
 
