@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: yarn
       - name: Test
-        run: yarn test
+        run: xvfb-run yarn test-all
       - name: Package
         run: yarn package
 
