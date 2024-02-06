@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "vscode-arduino-tools",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Arduino Tools extension for VS Code",
   "license": "Apache-2.0",
   "author": "Arduino SA",
@@ -25,7 +25,7 @@
     "compile-tests": "tsc -p . --outDir lib",
     "format": "prettier --write . && prettier-package-json --write ./package.json",
     "generate": "node ./scripts/generate.js 1.5.1",
-    "postinstall": "node ./scripts/cli 0.35.0-rc.7",
+    "postinstall": "node ./scripts/cli 0.35.2",
     "lint": "eslint src --ext ts",
     "prepackage": "yarn clean && yarn compile && yarn lint && yarn webpack",
     "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts",

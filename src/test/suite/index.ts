@@ -92,8 +92,8 @@ async function setup(tracked: typeof temp): Promise<TestEnv> {
   const params: PrepareTestEnvParams = {
     ...testEnv,
     platformsToInstall: [
-      { platform: 'esp32:esp32', version: '3.0.0-arduino3' },
-      { platform: 'arduino:esp32' },
+      { platform: 'arduino:avr' }, // this is an arbitrary core without default programmer set to get the expected error from the CLI with the --programmer value is missing
+      { platform: 'arduino:esp32', version: '3.0.0-arduino3r2' },
       { platform: 'arduino:samd' }, // samd is need to get the tools for the manually (Git) installed core
     ],
     additionalUrls: [

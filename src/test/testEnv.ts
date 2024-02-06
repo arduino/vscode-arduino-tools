@@ -135,14 +135,11 @@ async function prepareWithCli(params: PrepareTestEnvParams): Promise<void> {
   await cliExec(['core', 'update-index'], cliConfigPath);
   log('Updated index');
   for (const { platform, version } of params.platformsToInstall ?? []) {
-    const args = [
-      'core',
-      'install',
-      version ? `${platform}@${version}` : platform,
-      '--skip-post-install',
-    ];
+    const toInstall = version ? `${platform}@${version}` : platform;
+    log(`Installing ${toInstall}...`);
+    const args = ['core', 'install', toInstall, '--skip-post-install'];
     await cliExec(args, cliConfigPath);
-    log(`Installed ${platform}`);
+    log(`Done. Installed ${platform}`);
   }
   log('Done');
 }

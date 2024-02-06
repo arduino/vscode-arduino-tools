@@ -38,7 +38,7 @@ describe('debug (slow)', function () {
   describe('createLaunchConfig', () => {
     it('should create with the required custom board options (USBMode=hwcdc)', async () => {
       const configOptions = 'USBMode=hwcdc';
-      const fqbn = `esp32:esp32:nano_nora:${configOptions}`;
+      const fqbn = `arduino:esp32:nano_nora:${configOptions}`;
       const name = 'the board name';
       const programmer = 'esptool';
       const actual = await createLaunchConfig({
@@ -50,14 +50,14 @@ describe('debug (slow)', function () {
       });
       const expected = {
         name: `${name} (${configOptions},${programmer})`,
-        configId: 'esp32:esp32:nano_nora:USBMode=hwcdc,programmer=esptool',
+        configId: 'arduino:esp32:nano_nora:USBMode=hwcdc,programmer=esptool',
         cwd: '${workspaceRoot}',
         request: 'attach',
         type: 'cortex-debug',
         executable: fromBuildPath('my_sketch.ino.elf'),
         toolchainPrefix: 'xtensa-esp32s3-elf',
         svdFile: fromDataDir(
-          'packages/esp32/hardware/esp32/3.0.0-arduino3/tools/ide-debug/svd/esp32s3.svd'
+          'packages/arduino/hardware/esp32/3.0.0-arduino3r2/tools/ide-debug/svd/esp32s3.svd'
         ),
         objdumpPath: fromDataDir(
           '/packages/esp32/tools/xtensa-esp32s3-elf-gcc/esp-12.2.0_20230208/bin/xtensa-esp32s3-elf-objdump'
@@ -86,7 +86,7 @@ describe('debug (slow)', function () {
     });
 
     it('should fail when the required custom board options are missing', async () => {
-      const fqbn = 'esp32:esp32:nano_nora';
+      const fqbn = 'arduino:esp32:nano_nora';
       const programmer = 'esptool';
       await assert.rejects(
         createLaunchConfig({
@@ -155,7 +155,7 @@ describe('debug (slow)', function () {
 
   it('should build the debug --info arguments', async () => {
     const { file, args } = buildDebugInfoArgs({
-      board: { fqbn: 'arduino:esp32:nano_nora' },
+      board: { fqbn: 'arduino:esp32:nano_nora:USBMode=hwcdc' },
       cliPath: testEnv.cliPath,
       sketchPath,
       cliConfigPath: testEnv.cliConfigPath,
@@ -173,10 +173,8 @@ describe('debug (slow)', function () {
         this.skip();
       }
       await assert.rejects(
-        cliExec(
-          ['debug', '-I', '-b', 'arduino:esp32:nano_nora', sketchPath],
-          locale
-        ),
+        // Can be any arbitrary board that does not have a default programmer defined in the platform. Otherwise, the error does not occur.
+        cliExec(['debug', '-I', '-b', 'arduino:avr:uno', sketchPath], locale),
         (reason) => isMissingProgrammerError(reason)
       );
     })
@@ -188,7 +186,7 @@ describe('debug (slow)', function () {
         'debug',
         '-I',
         '-b',
-        'arduino:esp32:nano_nora',
+        'arduino:esp32:nano_nora:USBMode=hwcdc',
         '-P',
         'unknown',
         sketchPath,

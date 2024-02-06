@@ -55,6 +55,10 @@ export interface StartLanguageServerParams {
    * If `true`, the logging is not forwarded to the _Output_ view via the language client.
    */
   readonly silentOutput?: boolean;
+  /**
+   * Number of async workers used by `clangd`. Background index also uses this many workers. If `0`, `clangd` uses all available cores. It's `0` by default.
+   */
+  readonly jobs?: number;
 }
 
 /**
@@ -177,6 +181,7 @@ async function buildLanguageClient(
     flags,
     env,
     log,
+    jobs,
   } = config;
   const args = [
     '-clangd',
@@ -215,6 +220,10 @@ async function buildLanguageClient(
     if (logPath) {
       args.push('-logpath', logPath);
     }
+  }
+  // https://github.com/arduino/arduino-language-server/pull/177
+  if (jobs) {
+    args.push('-jobs', String(jobs));
   }
   const clientOptions: LanguageClientOptions = {
     initializationOptions: {},
