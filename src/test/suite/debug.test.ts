@@ -363,9 +363,20 @@ describe('debug', () => {
       const actual = createConfigId({ fqbn: 'a:b:c' }, 'p');
       assert.strictEqual(actual, 'a:b:c:programmer=p');
     });
+
+    it('should create the configuration ID when the FQBN has no custom board options (no programmer)', () => {
+      const actual = createConfigId({ fqbn: 'a:b:c' }, undefined);
+      assert.strictEqual(actual, 'a:b:c');
+    });
+
     it('should create the configuration ID when the FQBN has custom board options', () => {
       const actual = createConfigId({ fqbn: 'a:b:c:o1=v1' }, 'p');
       assert.strictEqual(actual, 'a:b:c:o1=v1,programmer=p');
+    });
+
+    it('should create the configuration ID when the FQBN has custom board options (no programmer)', () => {
+      const actual = createConfigId({ fqbn: 'a:b:c:o1=v1' }, undefined);
+      assert.strictEqual(actual, 'a:b:c:o1=v1');
     });
   });
   describe('createName', () => {
@@ -386,6 +397,12 @@ describe('debug', () => {
       );
     });
 
+    it('should use the generated config ID with the custom board options if the board name is absent (no programmer)', () => {
+      const board = { fqbn: 'a:b:c:UsbMode=default' };
+      const actual = createName(board, undefined);
+      assert.strictEqual(actual, 'Arduino (a:b:c:UsbMode=default)');
+    });
+
     it('should use the board name', () => {
       const board = { fqbn: 'a:b:c', name: 'board name' };
       const programmer = 'p1';
@@ -393,11 +410,23 @@ describe('debug', () => {
       assert.strictEqual(actual, 'board name (p1)');
     });
 
+    it('should use the board name (no programmer)', () => {
+      const board = { fqbn: 'a:b:c', name: 'board name' };
+      const actual = createName(board, undefined);
+      assert.strictEqual(actual, 'board name');
+    });
+
     it('should use the board name and all custom board options', () => {
       const board = { fqbn: 'a:b:c:UsbMode=default', name: 'board name' };
       const programmer = 'p1';
       const actual = createName(board, programmer);
       assert.strictEqual(actual, 'board name (UsbMode=default,p1)');
+    });
+
+    it('should use the board name and all custom board options (no programmer)', () => {
+      const board = { fqbn: 'a:b:c:UsbMode=default', name: 'board name' };
+      const actual = createName(board, undefined);
+      assert.strictEqual(actual, 'board name (UsbMode=default)');
     });
   });
 

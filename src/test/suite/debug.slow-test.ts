@@ -6,12 +6,8 @@ import { __tests__ } from '../../debug';
 import { exec } from '../../exec';
 import { TestEnv } from '../testEnv';
 
-const {
-  CliError,
-  buildDebugInfoArgs,
-  createLaunchConfig,
-  isMissingProgrammerError,
-} = __tests__;
+const { CliError, buildDebugInfoArgs, createLaunchConfig, isBadArgumentError } =
+  __tests__;
 
 describe('debug (slow)', function () {
   this.slow(2_000);
@@ -168,14 +164,15 @@ describe('debug (slow)', function () {
   });
 
   ['en', 'it'].map((locale) =>
-    it(`should fail when the programmer is missing (locale: ${locale})`, async function () {
+    // Note: this test used to test the missing programmer error, but the programmer is optional after https://github.com/arduino/arduino-cli/pull/2544 so it's testing the bad request.
+    it(`should fail with bad argument (error code 7) if the debugging is not supported by the board (locale: ${locale})`, async function () {
       if (!testEnv.cliConfigPaths[locale]) {
         this.skip();
       }
       await assert.rejects(
-        // Can be any arbitrary board that does not have a default programmer defined in the platform. Otherwise, the error does not occur.
+        // Can be any arbitrary board that does not support debugging.
         cliExec(['debug', '-I', '-b', 'arduino:avr:uno', sketchPath], locale),
-        (reason) => isMissingProgrammerError(reason)
+        (reason) => isBadArgumentError(reason)
       );
     })
   );

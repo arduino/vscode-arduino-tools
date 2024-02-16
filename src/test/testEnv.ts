@@ -139,7 +139,7 @@ async function prepareWithCli(params: PrepareTestEnvParams): Promise<void> {
     log(`Installing ${toInstall}...`);
     const args = ['core', 'install', toInstall, '--skip-post-install'];
     await cliExec(args, cliConfigPath);
-    log(`Done. Installed ${platform}`);
+    log(`Done. Installed ${toInstall}`);
   }
   log('Done');
 }
