@@ -25,7 +25,7 @@
     "compile-tests": "tsc -p . --outDir lib",
     "format": "prettier --write . && prettier-package-json --write ./package.json",
     "generate": "node ./scripts/generate.js 1.5.1",
-    "postinstall": "node ./scripts/cli 0.35.2",
+    "postinstall": "node ./scripts/cli 0.35.3",
     "lint": "eslint src --ext ts",
     "prepackage": "yarn clean && yarn compile && yarn lint && yarn webpack",
     "package": "mkdirp build-artifacts && vsce package --out ./build-artifacts",

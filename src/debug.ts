@@ -142,9 +142,6 @@ async function createLaunchConfig(
   params: StartDebugParams
 ): Promise<ArduinoDebugLaunchConfig> {
   const { programmer, board } = params;
-  if (!programmer) {
-    throw new Error('Missing programmer');
-  }
   const { file, args } = buildDebugInfoArgs(params);
   const [stdout, customConfigs] = await Promise.all([
     withProgress(
@@ -206,8 +203,14 @@ async function parseRawDebugInfo(
   return config;
 }
 
-function createConfigId(board: BoardIdentifier, programmer: string): string {
+function createConfigId(
+  board: BoardIdentifier,
+  programmer: string | undefined
+): string {
   const fqbn = new FQBN(board.fqbn);
+  if (!programmer) {
+    return fqbn.toString();
+  }
   if (hasConfigOptions(fqbn)) {
     // if already has config options, append the programmer as an ordinary custom board config option
     return `${fqbn.toString()},programmer=${programmer}`;
@@ -294,7 +297,7 @@ function resolveCliConfigPath(
 
 async function mergeLaunchConfig(
   board: BoardIdentifier,
-  programmer: string,
+  programmer: string | undefined,
   debugInfo: DebugInfo & Executable,
   customConfigs: CustomDebugConfigs
 ): Promise<ArduinoDebugLaunchConfig> {
@@ -326,7 +329,10 @@ async function mergeLaunchConfig(
   return launchConfig;
 }
 
-function createName(board: BoardIdentifier, programmer: string): string {
+function createName(
+  board: BoardIdentifier,
+  programmer: string | undefined
+): string {
   if (!board.name) {
     const configId = createConfigId(board, programmer);
     return `Arduino (${configId})`;
@@ -336,9 +342,9 @@ function createName(board: BoardIdentifier, programmer: string): string {
     const options = Object.entries(fqbn.options)
       .map(([key, value]) => `${key}=${value}`)
       .join(',');
-    return `${board.name} (${options},${programmer})`;
+    return `${board.name} (${options}${programmer ? `,${programmer}` : ''})`;
   }
-  return `${board.name} (${programmer})`;
+  return `${board.name}${programmer ? ` (${programmer})` : ''}`;
 }
 
 function replaceValue(
@@ -494,12 +500,12 @@ export class CliError extends Error {
   }
 }
 
-// https://github.com/arduino/arduino-cli/blob/b41f4044cac6ab7f7d853e368bc31e5d626d63d4/internal/cli/feedback/errorcodes.go#L57-L58
-const missingProgrammerCode = 11 as const;
-function isMissingProgrammerError(
+// https://github.com/arduino/arduino-cli/blob/b41f4044cac6ab7f7d853e368bc31e5d626d63d4/internal/cli/feedback/errorcodes.go#L43-L44
+const badArgumentCode = 7 as const;
+function isBadArgumentError(
   arg: unknown
-): arg is CliError & { exitCode: typeof missingProgrammerCode } {
-  return arg instanceof CliError && arg.exitCode === missingProgrammerCode;
+): arg is CliError & { exitCode: typeof badArgumentCode } {
+  return arg instanceof CliError && arg.exitCode === badArgumentCode;
 }
 
 // Remove index signature
@@ -536,6 +542,6 @@ export const __tests__ = {
   mergeLaunchConfig,
   updateLaunchConfigs,
   isCommandError,
-  isMissingProgrammerError,
+  isBadArgumentError,
   cliExec,
 } as const;
