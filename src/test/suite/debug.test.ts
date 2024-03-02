@@ -144,8 +144,27 @@ describe('debug', () => {
       const actual = await mergeLaunchConfig(
         board,
         programmer,
-        { executable },
-        [{ configId, cwd: 'alma' }]
+        {
+          executable,
+          toolchainPrefix: 'toolchain-prefix',
+          serverPath: 'path/to/server',
+          server: 'openocd',
+          toolchainPath: 'path/to/toolchain',
+          serverConfiguration: {
+            scripts: ['path/to/config-file'],
+          },
+        },
+        [
+          {
+            configId,
+            cwd: 'alma',
+            toolchainPrefix: 'custom-toolchain-prefix',
+            serverpath: '/path/to/custom-server',
+            servertype: 'jlink',
+            armToolchainPath: '/path/to/custom-arm-toolchain',
+            configFiles: ['/path/to/custom-config'],
+          },
+        ]
       );
       assert.deepStrictEqual(actual, {
         configId,
@@ -154,6 +173,11 @@ describe('debug', () => {
         name: 'ABC (p1)',
         request: 'launch',
         type: 'cortex-debug',
+        toolchainPrefix: 'custom-toolchain-prefix',
+        serverpath: '/path/to/custom-server',
+        servertype: 'jlink',
+        armToolchainPath: '/path/to/custom-arm-toolchain',
+        configFiles: ['/path/to/custom-config'],
       });
     });
 
