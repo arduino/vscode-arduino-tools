@@ -230,8 +230,11 @@ describe('debug', () => {
         const actual = await mergeLaunchConfig(
           board,
           programmer,
-          { executable },
-          [{ configId, [key]: value }]
+          {
+            executable,
+            [key]: value,
+          },
+          []
         );
         assert.deepStrictEqual(actual, expected);
       })
