@@ -306,7 +306,8 @@ async function mergeLaunchConfig(
     (config) => config.configId === configId
   );
   const name = createName(board, programmer);
-  const launchConfig = {
+  // Create base configuration data
+  let launchConfig = {
     configId,
     cwd: '${workspaceRoot}',
     request: 'launch',
@@ -315,17 +316,26 @@ async function mergeLaunchConfig(
     ...(debugInfo.customConfigs
       ? debugInfo.customConfigs[cortexDebug] ?? {}
       : {}),
-    ...(customConfig ? customConfig : {}),
     name,
   };
+
+  // Remap Arduino CLI debug config properties to launch.json keys
   replaceValue('serverPath', 'serverpath', launchConfig);
   replaceValue('server', 'servertype', launchConfig);
   replaceValue('toolchainPath', 'armToolchainPath', launchConfig);
   replaceValue('serverConfiguration.scripts', 'configFiles', launchConfig);
+  // Remove unused Arduino CLI debug config data
   unsetValue(launchConfig, 'customConfigs');
   unsetValue(launchConfig, 'serverConfiguration');
   unsetValue(launchConfig, 'programmer'); // The programmer is not used by the debugger https://github.com/arduino/arduino-cli/pull/2391
   unsetValue(launchConfig, 'toolchain'); // The toolchain is also unused by IDE2 or the cortex-debug VSIX
+
+  // Merge configuration from debug_custom.json
+  launchConfig = {
+    ...launchConfig,
+    ...(customConfig ? customConfig : {}),
+  };
+
   return launchConfig;
 }
 
