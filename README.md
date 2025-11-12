@@ -6,7 +6,7 @@ VS Code extension for Arduino Tools, such as language features and debugger. Thi
 
 High quality bug reports and feature requests are valuable contributions to the project.
 
-Before reporting an issue search existing pull requests and issues to see if it was already reported. If yfou have additional information to provide about an existing issue, please comment there. You can use the Reactions feature if you only want to express support.
+Before reporting an issue search existing pull requests and issues to see if it was already reported. If you have additional information to provide about an existing issue, please comment there. You can use the Reactions feature if you only want to express support.
 
 Qualities of an excellent report:
 
@@ -65,7 +65,7 @@ Open the `Debug` panel, and select the `Launch Arduino Tools – VS Code Extensi
 To deploy a new release of the tools you have to do the following:
 
 - update the `version` in the package.json file
-- push a tag to the repo with `v` and the version you spacified in the package.json, for example `v0.0.2-beta.1`
+- push a tag to the repo with `v` and the version you specified in the package.json, for example `v0.0.2-beta.1`
 
 ## License
 
